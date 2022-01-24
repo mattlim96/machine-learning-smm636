@@ -1,0 +1,159 @@
+---
+title: 'R exercise 1: Introduction'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The pairs plot for the iris data
+
+To visualise the relationship between variables, we can use `pairs( )` to create a pairs plot. When the response variable is categorical, we can label data points from different classes using different symbols. Which variables are good for classification task?
+
+We take the iris data as an example. Iris is contained in `R`, so we do not have to load it from files. Use the following command to see all the datasets in `R`. 
+```{r data}
+data()
+```
+
+To see the summary of the iris data:
+```{r iris data}
+help(iris) # description of the iris data
+str(iris) # displays the structure of the iris data
+table(iris$Species)  # gives you a table of the species variable
+summary(iris) # five-number summary statistics of the variables
+```
+
+Now we can draw a pairs plot for the iris data with different species labelled wit different symbols.
+```{r iris data pairs plot}
+# set the colours for the three classes
+cols<- c("steelblue1", "hotpink", "mediumpurple")  
+# set the symbols for the three classes
+pchs<-c(1,2,3)
+# use pairs() to create the pairs plot, with different colours and symbols 
+# for different classes
+pairs(iris[,1:4], pch = pchs[iris$Species],  cex = 1,
+      col = cols[iris$Species],
+      lower.panel=NULL)
+# create a legend for the plot 
+par(xpd = TRUE) # enables you to add a legend outside of the plot region
+legend("bottomleft",legend=c("setosa","versicolor","virginica"),
+       col=cols,pch=pchs,cex=0.5,text.font=2)
+```
+
+Use `?function_name` to understand all the commands. Change the values of `cex` and `text.font` in `legend()`, to make the plot fit to your window.
+
+We can save the plot by clicking `Export`. 
+
+Alternatively, we can do the following:
+```{r iris data pairs plot export 1,eval=F, echo=T}
+# Open a new plot device
+dev.new(width=5, height=4, unit="in") 
+# use pairs() to create the pairs plot, with different colours and symbols 
+# for different classes
+pairs(iris[,1:4], pch = pchs[iris$Species],  cex = 1,
+      col = cols[iris$Species],
+      lower.panel=NULL)
+# create a legend for the plot 
+par(xpd = TRUE) # enables you to add a legend outside of the plot region
+legend("bottomleft",legend=c("setosa","versicolor","virginica"),
+       col=cols,pch=pchs,cex=1,text.font=4)
+```
+
+`dev.new()` will open a new plot device in `R`. We can change the size of the plot in the new window and save it manually.
+
+Another way to save a plot in pdf format automatically:
+```{r iris data pairs plot export 2,eval=F, echo=T}
+# use pdf() to open a new pdf device
+pdf("iris-plot.pdf",width=7, height=5)
+# use pairs() to create the pairs plot, with different colours and symbols 
+# for different classes
+pairs(iris[,1:4], pch = pchs[iris$Species],  cex = 1,
+      col = cols[iris$Species],
+      lower.panel=NULL)
+# create a legend for the plot 
+par(xpd = TRUE) # enables you to add a legend outside of the plot region
+legend("bottomleft",legend=c("setosa","versicolor","virginica"),
+       col=cols,pch=pchs,cex=1,text.font=4)
+# close the device       
+dev.off()
+```
+
+Play with different values for `pch`, `col`, `cex`, `text.font` etc. to see the changes of the plot.
+
+Here is an alternative way to add a legend. Type `?par` and find what `oma` controls.
+```{r iris data pairs plot2}
+# oma allows you to create some spare space for the legend
+#  here we make the right margin quite large
+pairs(iris[,1:4], pch = pchs[iris$Species],  cex = 1,
+      col = cols[iris$Species],oma=c(4,4,6,12))
+# create a legend for the plot
+par(xpd = TRUE) # enables you to add a legend outside of the plot region
+legend(0.85, 0.3,legend=c("setosa","versicolor","virginica"),
+       col=cols,pch=pchs,cex=1,text.font=2)
+```
+
+
+*There are many ways to do the same thing in `R`. Explore different ways and choose the way you like.*
+
+## Create subsets from data
+This is very important in classification tasks, because we need to create training set and test set.
+
+Load the Default data:
+```{r default data}
+Default=read.table("Default.txt",header=TRUE)
+str(Default) # gives you the structure of the Default data
+table(Default$default)  # gives you a table of the default variable
+summary(Default) # five-number summary statistics of the variables
+```
+
+This dataset is large with 10,000 observations and 4 variables. The first variable `default` indicates whether the customer is default or not, the second variable `student` indicates whether the customer is a student or not, the third variable `balance` is the balance remaining in one customer's credit card after monthly payment and the fourth variable `income` is the customer's income.
+
+Suppose we want to create a subsets of the Default data with 100 observations (50 of them are `default=No` and 50 of them are `default=Yes`):
+```{r default data subset 1}
+# get the first 50 default=No
+default_no_all=Default[Default$default=="No",]
+default_no_50_1=default_no_all[1:50,]
+# alternatively, try
+default_no_50_2=Default[Default$default=="No",][1:50,]
+# check whether default_no_50_1 is equivalent to 
+# default_no_50_2 by yourself
+sum(default_no_50_1[,3]!=default_no_50_2[,3])
+sum(default_no_50_1[,3]==default_no_50_2[,3])
+default_no_50 = default_no_50_2
+# get the first 50 default=Yes
+default_yes_50 = Default[Default$default=="Yes",][1:50,]
+# combine default_no_50 and default_yes_50 
+# to get the subset
+default_50 = rbind(default_no_50,default_yes_50) 
+?rbind
+```
+
+Instead of using the first 50 observations of `default=No` and `default=Yes`, we would like to randomly sample 50 observations from `default=No` and 50 observations from `default=Yes`:
+```{r default data subset 2}
+?set.seed
+set.seed(375) # make the random sampling reproducible
+default_no_rand=Default[sample(which(Default$default=="No"),50),]
+default_yes_rand=Default[sample(which(Default$default=="Yes"),50),]
+?which
+which(Default$default=="Yes")
+?sample
+default_rand = rbind(default_no_rand,default_yes_rand)
+```
+
+Usually we want to reproduce the random sampling results, so we have to add `set.seed( )` before any random sampling function. The number in the bracket can be any integer. Next time if you want to obtain the exactly the same random sampling result, use the same integer. 
+
+Sometimes we want to change the sample size: change the two 50s in the above codes. Imagine there are a lot of 50s in long codes. It is tedious to do this and easy to miss changing some values. It is easier to modify your codes if you write like this.
+```{r default data subset 3}
+n=50
+set.seed(375) # make the random sampling reproducible
+default_no_rand=Default[sample(which(Default$default=="No"),n),]
+default_yes_rand=Default[sample(which(Default$default=="Yes"),n),]
+default_rand = rbind(default_no_rand,default_yes_rand)
+```
+
+You just have to change the value of `n` in the first line.
+
+Play with `sample( )` and `which( )` with different inputs, e.g. `which(Default$balance>1000)`...
