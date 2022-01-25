@@ -1,0 +1,454 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\title{R exercise 1: Introduction}
+\author{}
+\date{\vspace{-2.5em}}
+
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={R exercise 1: Introduction},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\begin{document}
+\maketitle
+
+\hypertarget{the-pairs-plot-for-the-iris-data}{%
+\subsection{The pairs plot for the iris
+data}\label{the-pairs-plot-for-the-iris-data}}
+
+To visualise the relationship between variables, we can use
+\texttt{pairs(\ )} to create a pairs plot. When the response variable is
+categorical, we can label data points from different classes using
+different symbols. Which variables are good for classification task?
+
+We take the iris data as an example. Iris is contained in \texttt{R}, so
+we do not have to load it from files. Use the following command to see
+all the datasets in \texttt{R}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{data}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+To see the summary of the iris data:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{help}\NormalTok{(iris) }\CommentTok{\# description of the iris data}
+\FunctionTok{str}\NormalTok{(iris) }\CommentTok{\# displays the structure of the iris data}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 'data.frame':    150 obs. of  5 variables:
+##  $ Sepal.Length: num  5.1 4.9 4.7 4.6 5 5.4 4.6 5 4.4 4.9 ...
+##  $ Sepal.Width : num  3.5 3 3.2 3.1 3.6 3.9 3.4 3.4 2.9 3.1 ...
+##  $ Petal.Length: num  1.4 1.4 1.3 1.5 1.4 1.7 1.4 1.5 1.4 1.5 ...
+##  $ Petal.Width : num  0.2 0.2 0.2 0.2 0.2 0.4 0.3 0.2 0.2 0.1 ...
+##  $ Species     : Factor w/ 3 levels "setosa","versicolor",..: 1 1 1 1 1 1 1 1 1 1 ...
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{table}\NormalTok{(iris}\SpecialCharTok{$}\NormalTok{Species)  }\CommentTok{\# gives you a table of the species variable}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##     setosa versicolor  virginica 
+##         50         50         50
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(iris) }\CommentTok{\# five{-}number summary statistics of the variables}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   Sepal.Length    Sepal.Width     Petal.Length    Petal.Width   
+##  Min.   :4.300   Min.   :2.000   Min.   :1.000   Min.   :0.100  
+##  1st Qu.:5.100   1st Qu.:2.800   1st Qu.:1.600   1st Qu.:0.300  
+##  Median :5.800   Median :3.000   Median :4.350   Median :1.300  
+##  Mean   :5.843   Mean   :3.057   Mean   :3.758   Mean   :1.199  
+##  3rd Qu.:6.400   3rd Qu.:3.300   3rd Qu.:5.100   3rd Qu.:1.800  
+##  Max.   :7.900   Max.   :4.400   Max.   :6.900   Max.   :2.500  
+##        Species  
+##  setosa    :50  
+##  versicolor:50  
+##  virginica :50  
+##                 
+##                 
+## 
+\end{verbatim}
+
+Now we can draw a pairs plot for the iris data with different species
+labelled wit different symbols.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# set the colours for the three classes}
+\NormalTok{cols}\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"steelblue1"}\NormalTok{, }\StringTok{"hotpink"}\NormalTok{, }\StringTok{"mediumpurple"}\NormalTok{)  }
+\CommentTok{\# set the symbols for the three classes}
+\NormalTok{pchs}\OtherTok{\textless{}{-}}\FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{,}\DecValTok{3}\NormalTok{)}
+\CommentTok{\# use pairs() to create the pairs plot, with different colours and symbols }
+\CommentTok{\# for different classes}
+\FunctionTok{pairs}\NormalTok{(iris[,}\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\AttributeTok{pch =}\NormalTok{ pchs[iris}\SpecialCharTok{$}\NormalTok{Species],  }\AttributeTok{cex =} \DecValTok{1}\NormalTok{,}
+      \AttributeTok{col =}\NormalTok{ cols[iris}\SpecialCharTok{$}\NormalTok{Species],}
+      \AttributeTok{upper.panel=}\ConstantTok{NULL}\NormalTok{)}
+\CommentTok{\# create a legend for the plot }
+\FunctionTok{par}\NormalTok{(}\AttributeTok{xpd =} \ConstantTok{TRUE}\NormalTok{) }\CommentTok{\# enables you to add a legend outside of the plot region}
+\FunctionTok{legend}\NormalTok{(}\StringTok{"topright"}\NormalTok{,}\AttributeTok{legend=}\FunctionTok{c}\NormalTok{(}\StringTok{"setosa"}\NormalTok{,}\StringTok{"versicolor"}\NormalTok{,}\StringTok{"virginica"}\NormalTok{),}
+       \AttributeTok{col=}\NormalTok{cols,}\AttributeTok{pch=}\NormalTok{pchs,}\AttributeTok{cex=}\FloatTok{0.5}\NormalTok{,}\AttributeTok{text.font=}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{C1-R-session_files/figure-latex/iris data pairs plot-1.pdf}
+
+Use \texttt{?function\_name} to understand all the commands. Change the
+values of \texttt{cex} and \texttt{text.font} in \texttt{legend()}, to
+make the plot fit to your window.
+
+We can save the plot by clicking \texttt{Export}.
+
+Alternatively, we can do the following:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Open a new plot device}
+\FunctionTok{dev.new}\NormalTok{(}\AttributeTok{width=}\DecValTok{5}\NormalTok{, }\AttributeTok{height=}\DecValTok{4}\NormalTok{, }\AttributeTok{unit=}\StringTok{"in"}\NormalTok{) }
+\CommentTok{\# use pairs() to create the pairs plot, with different colours and symbols }
+\CommentTok{\# for different classes}
+\FunctionTok{pairs}\NormalTok{(iris[,}\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\AttributeTok{pch =}\NormalTok{ pchs[iris}\SpecialCharTok{$}\NormalTok{Species],  }\AttributeTok{cex =} \DecValTok{1}\NormalTok{,}
+      \AttributeTok{col =}\NormalTok{ cols[iris}\SpecialCharTok{$}\NormalTok{Species],}
+      \AttributeTok{lower.panel=}\ConstantTok{NULL}\NormalTok{)}
+\CommentTok{\# create a legend for the plot }
+\FunctionTok{par}\NormalTok{(}\AttributeTok{xpd =} \ConstantTok{TRUE}\NormalTok{) }\CommentTok{\# enables you to add a legend outside of the plot region}
+\FunctionTok{legend}\NormalTok{(}\StringTok{"bottomleft"}\NormalTok{,}\AttributeTok{legend=}\FunctionTok{c}\NormalTok{(}\StringTok{"setosa"}\NormalTok{,}\StringTok{"versicolor"}\NormalTok{,}\StringTok{"virginica"}\NormalTok{),}
+       \AttributeTok{col=}\NormalTok{cols,}\AttributeTok{pch=}\NormalTok{pchs,}\AttributeTok{cex=}\DecValTok{1}\NormalTok{,}\AttributeTok{text.font=}\DecValTok{4}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{dev.new()} will open a new plot device in \texttt{R}. We can
+change the size of the plot in the new window and save it manually.
+
+Another way to save a plot in pdf format automatically:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# use pdf() to open a new pdf device}
+\FunctionTok{pdf}\NormalTok{(}\StringTok{"iris{-}plot.pdf"}\NormalTok{,}\AttributeTok{width=}\DecValTok{7}\NormalTok{, }\AttributeTok{height=}\DecValTok{5}\NormalTok{)}
+\CommentTok{\# use pairs() to create the pairs plot, with different colours and symbols }
+\CommentTok{\# for different classes}
+\FunctionTok{pairs}\NormalTok{(iris[,}\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\AttributeTok{pch =}\NormalTok{ pchs[iris}\SpecialCharTok{$}\NormalTok{Species],  }\AttributeTok{cex =} \DecValTok{1}\NormalTok{,}
+      \AttributeTok{col =}\NormalTok{ cols[iris}\SpecialCharTok{$}\NormalTok{Species],}
+      \AttributeTok{lower.panel=}\ConstantTok{NULL}\NormalTok{)}
+\CommentTok{\# create a legend for the plot }
+\FunctionTok{par}\NormalTok{(}\AttributeTok{xpd =} \ConstantTok{TRUE}\NormalTok{) }\CommentTok{\# enables you to add a legend outside of the plot region}
+\FunctionTok{legend}\NormalTok{(}\StringTok{"bottomleft"}\NormalTok{,}\AttributeTok{legend=}\FunctionTok{c}\NormalTok{(}\StringTok{"setosa"}\NormalTok{,}\StringTok{"versicolor"}\NormalTok{,}\StringTok{"virginica"}\NormalTok{),}
+       \AttributeTok{col=}\NormalTok{cols,}\AttributeTok{pch=}\NormalTok{pchs,}\AttributeTok{cex=}\DecValTok{1}\NormalTok{,}\AttributeTok{text.font=}\DecValTok{4}\NormalTok{)}
+\CommentTok{\# close the device       }
+\FunctionTok{dev.off}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+Play with different values for \texttt{pch}, \texttt{col}, \texttt{cex},
+\texttt{text.font} etc. to see the changes of the plot.
+
+Here is an alternative way to add a legend. Type \texttt{?par} and find
+what \texttt{oma} controls.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# oma allows you to create some spare space for the legend}
+\CommentTok{\#  here we make the right margin quite large}
+\FunctionTok{pairs}\NormalTok{(iris[,}\DecValTok{1}\SpecialCharTok{:}\DecValTok{4}\NormalTok{], }\AttributeTok{pch =}\NormalTok{ pchs[iris}\SpecialCharTok{$}\NormalTok{Species],  }\AttributeTok{cex =} \DecValTok{1}\NormalTok{,}
+      \AttributeTok{col =}\NormalTok{ cols[iris}\SpecialCharTok{$}\NormalTok{Species],}\AttributeTok{oma=}\FunctionTok{c}\NormalTok{(}\DecValTok{4}\NormalTok{,}\DecValTok{4}\NormalTok{,}\DecValTok{6}\NormalTok{,}\DecValTok{12}\NormalTok{))}
+\CommentTok{\# create a legend for the plot}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{xpd =} \ConstantTok{TRUE}\NormalTok{) }\CommentTok{\# enables you to add a legend outside of the plot region}
+\FunctionTok{legend}\NormalTok{(}\FloatTok{0.85}\NormalTok{, }\FloatTok{0.3}\NormalTok{,}\AttributeTok{legend=}\FunctionTok{c}\NormalTok{(}\StringTok{"setosa"}\NormalTok{,}\StringTok{"versicolor"}\NormalTok{,}\StringTok{"virginica"}\NormalTok{),}
+       \AttributeTok{col=}\NormalTok{cols,}\AttributeTok{pch=}\NormalTok{pchs,}\AttributeTok{cex=}\DecValTok{1}\NormalTok{,}\AttributeTok{text.font=}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{C1-R-session_files/figure-latex/iris data pairs plot2-1.pdf}
+
+\emph{There are many ways to do the same thing in \texttt{R}. Explore
+different ways and choose the way you like.}
+
+\hypertarget{create-subsets-from-data}{%
+\subsection{Create subsets from data}\label{create-subsets-from-data}}
+
+This is very important in classification tasks, because we need to
+create training set and test set.
+
+Load the Default data:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Default}\OtherTok{=}\FunctionTok{read.table}\NormalTok{(}\StringTok{"Default.txt"}\NormalTok{,}\AttributeTok{header=}\ConstantTok{TRUE}\NormalTok{)}
+\FunctionTok{str}\NormalTok{(Default) }\CommentTok{\# gives you the structure of the Default data}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 'data.frame':    10000 obs. of  4 variables:
+##  $ default: chr  "No" "No" "No" "No" ...
+##  $ student: chr  "No" "Yes" "No" "No" ...
+##  $ balance: num  730 817 1074 529 786 ...
+##  $ income : num  44362 12106 31767 35704 38463 ...
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{table}\NormalTok{(Default}\SpecialCharTok{$}\NormalTok{default)  }\CommentTok{\# gives you a table of the default variable}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##   No  Yes 
+## 9667  333
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(Default) }\CommentTok{\# five{-}number summary statistics of the variables}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    default            student             balance           income     
+##  Length:10000       Length:10000       Min.   :   0.0   Min.   :  772  
+##  Class :character   Class :character   1st Qu.: 481.7   1st Qu.:21340  
+##  Mode  :character   Mode  :character   Median : 823.6   Median :34553  
+##                                        Mean   : 835.4   Mean   :33517  
+##                                        3rd Qu.:1166.3   3rd Qu.:43808  
+##                                        Max.   :2654.3   Max.   :73554
+\end{verbatim}
+
+This dataset is large with 10,000 observations and 4 variables. The
+first variable \texttt{default} indicates whether the customer is
+default or not, the second variable \texttt{student} indicates whether
+the customer is a student or not, the third variable \texttt{balance} is
+the balance remaining in one customer's credit card after monthly
+payment and the fourth variable \texttt{income} is the customer's
+income.
+
+Suppose we want to create a subsets of the Default data with 100
+observations (50 of them are \texttt{default=No} and 50 of them are
+\texttt{default=Yes}):
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# get the first 50 default=No}
+\NormalTok{default\_no\_all}\OtherTok{=}\NormalTok{Default[Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"No"}\NormalTok{,]}
+\NormalTok{default\_no\_50\_1}\OtherTok{=}\NormalTok{default\_no\_all[}\DecValTok{1}\SpecialCharTok{:}\DecValTok{50}\NormalTok{,]}
+\CommentTok{\# alternatively, try}
+\NormalTok{default\_no\_50\_2}\OtherTok{=}\NormalTok{Default[Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"No"}\NormalTok{,][}\DecValTok{1}\SpecialCharTok{:}\DecValTok{50}\NormalTok{,]}
+\CommentTok{\# check whether default\_no\_50\_1 is equivalent to }
+\CommentTok{\# default\_no\_50\_2 by yourself}
+\FunctionTok{sum}\NormalTok{(default\_no\_50\_1[,}\DecValTok{3}\NormalTok{]}\SpecialCharTok{!=}\NormalTok{default\_no\_50\_2[,}\DecValTok{3}\NormalTok{])}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sum}\NormalTok{(default\_no\_50\_1[,}\DecValTok{3}\NormalTok{]}\SpecialCharTok{==}\NormalTok{default\_no\_50\_2[,}\DecValTok{3}\NormalTok{])}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 50
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{default\_no\_50 }\OtherTok{=}\NormalTok{ default\_no\_50\_2}
+\CommentTok{\# get the first 50 default=Yes}
+\NormalTok{default\_yes\_50 }\OtherTok{=}\NormalTok{ Default[Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"Yes"}\NormalTok{,][}\DecValTok{1}\SpecialCharTok{:}\DecValTok{50}\NormalTok{,]}
+\CommentTok{\# combine default\_no\_50 and default\_yes\_50 }
+\CommentTok{\# to get the subset}
+\NormalTok{default\_50 }\OtherTok{=} \FunctionTok{rbind}\NormalTok{(default\_no\_50,default\_yes\_50) }
+\NormalTok{?rbind}
+\end{Highlighting}
+\end{Shaded}
+
+Instead of using the first 50 observations of \texttt{default=No} and
+\texttt{default=Yes}, we would like to randomly sample 50 observations
+from \texttt{default=No} and 50 observations from \texttt{default=Yes}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{?set.seed}
+\FunctionTok{set.seed}\NormalTok{(}\DecValTok{375}\NormalTok{) }\CommentTok{\# make the random sampling reproducible}
+\NormalTok{default\_no\_rand}\OtherTok{=}\NormalTok{Default[}\FunctionTok{sample}\NormalTok{(}\FunctionTok{which}\NormalTok{(Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"No"}\NormalTok{),}\DecValTok{50}\NormalTok{),]}
+\NormalTok{default\_yes\_rand}\OtherTok{=}\NormalTok{Default[}\FunctionTok{sample}\NormalTok{(}\FunctionTok{which}\NormalTok{(Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"Yes"}\NormalTok{),}\DecValTok{50}\NormalTok{),]}
+\NormalTok{?which}
+\FunctionTok{which}\NormalTok{(Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"Yes"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   [1]  137  174  202  207  210  242  244  264  342  346  350  358  407  440  441
+##  [16]  488  541  546  577  582  642  652  714  741  762  804  834  868  921  933
+##  [31]  975  982 1000 1019 1024 1044 1099 1137 1143 1144 1161 1210 1216 1256 1360
+##  [46] 1362 1396 1446 1448 1485 1488 1497 1503 1549 1591 1610 1626 1648 1703 1710
+##  [61] 1749 1781 1829 1833 1845 1863 1877 1897 1940 1942 2003 2011 2034 2050 2065
+##  [76] 2092 2097 2127 2160 2174 2181 2202 2206 2218 2241 2284 2324 2341 2355 2449
+##  [91] 2461 2539 2551 2605 2654 2695 2753 2785 2801 2890 2930 3041 3054 3104 3118
+## [106] 3124 3157 3163 3182 3190 3212 3239 3249 3286 3298 3307 3315 3324 3377 3380
+## [121] 3386 3392 3438 3487 3491 3563 3598 3613 3642 3715 3719 3785 3856 3882 3914
+## [136] 3922 3958 3970 4050 4061 4074 4078 4080 4112 4145 4160 4168 4211 4225 4232
+## [151] 4309 4372 4409 4418 4431 4464 4478 4510 4514 4569 4590 4591 4595 4682 4684
+## [166] 4698 4709 4710 4727 4775 4938 4949 4953 4965 4983 5015 5039 5050 5054 5092
+## [181] 5162 5190 5210 5286 5355 5397 5432 5440 5462 5507 5575 5653 5666 5675 5783
+## [196] 5821 5858 5891 5982 6020 6033 6076 6078 6098 6122 6138 6181 6192 6243 6250
+## [211] 6262 6334 6335 6372 6400 6422 6450 6462 6475 6521 6542 6544 6597 6602 6613
+## [226] 6635 6644 6687 6756 6783 6795 6804 6831 6848 6851 6873 6883 6924 6970 6986
+## [241] 7015 7047 7094 7105 7141 7200 7247 7336 7338 7363 7429 7438 7487 7490 7525
+## [256] 7553 7662 7732 7785 7799 7812 7814 7816 7828 7870 7904 8121 8141 8191 8195
+## [271] 8244 8265 8310 8343 8357 8365 8400 8411 8428 8457 8460 8463 8464 8480 8490
+## [286] 8496 8543 8575 8706 8725 8738 8793 8833 8836 8908 8920 8993 9041 9046 9071
+## [301] 9080 9085 9180 9257 9272 9296 9329 9370 9433 9438 9449 9459 9478 9486 9501
+## [316] 9511 9516 9523 9539 9611 9655 9784 9787 9797 9814 9857 9884 9894 9913 9922
+## [331] 9950 9952 9979
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{?sample}
+\NormalTok{default\_rand }\OtherTok{=} \FunctionTok{rbind}\NormalTok{(default\_no\_rand,default\_yes\_rand)}
+\end{Highlighting}
+\end{Shaded}
+
+Usually we want to reproduce the random sampling results, so we have to
+add \texttt{set.seed(\ )} before any random sampling function. The
+number in the bracket can be any integer. Next time if you want to
+obtain the exactly the same random sampling result, use the same
+integer.
+
+Sometimes we want to change the sample size: change the two 50s in the
+above codes. Imagine there are a lot of 50s in long codes. It is tedious
+to do this and easy to miss changing some values. It is easier to modify
+your codes if you write like this.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{n}\OtherTok{=}\DecValTok{50}
+\FunctionTok{set.seed}\NormalTok{(}\DecValTok{375}\NormalTok{) }\CommentTok{\# make the random sampling reproducible}
+\NormalTok{default\_no\_rand}\OtherTok{=}\NormalTok{Default[}\FunctionTok{sample}\NormalTok{(}\FunctionTok{which}\NormalTok{(Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"No"}\NormalTok{),n),]}
+\NormalTok{default\_yes\_rand}\OtherTok{=}\NormalTok{Default[}\FunctionTok{sample}\NormalTok{(}\FunctionTok{which}\NormalTok{(Default}\SpecialCharTok{$}\NormalTok{default}\SpecialCharTok{==}\StringTok{"Yes"}\NormalTok{),n),]}
+\NormalTok{default\_rand }\OtherTok{=} \FunctionTok{rbind}\NormalTok{(default\_no\_rand,default\_yes\_rand)}
+\end{Highlighting}
+\end{Shaded}
+
+You just have to change the value of \texttt{n} in the first line.
+
+Play with \texttt{sample(\ )} and \texttt{which(\ )} with different
+inputs, e.g.~\texttt{which(Default\$balance\textgreater{}1000)}\ldots{}
+
+\end{document}

@@ -1,8 +1,9 @@
 ---
 title: 'R exercise 1: Introduction'
 output:
-  pdf_document: default
+  word_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -36,10 +37,10 @@ pchs<-c(1,2,3)
 # for different classes
 pairs(iris[,1:4], pch = pchs[iris$Species],  cex = 1,
       col = cols[iris$Species],
-      lower.panel=NULL)
+      upper.panel=NULL)
 # create a legend for the plot 
 par(xpd = TRUE) # enables you to add a legend outside of the plot region
-legend("bottomleft",legend=c("setosa","versicolor","virginica"),
+legend("topright",legend=c("setosa","versicolor","virginica"),
        col=cols,pch=pchs,cex=0.5,text.font=2)
 ```
 
