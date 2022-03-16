@@ -1,0 +1,301 @@
+---
+title: 'Exercise: Model assessment and cross-validation'
+header-includes:
+- \usepackage{accents}
+- \usepackage{mathtools}
+- \usepackage{natbib} 
+- \usepackage{graphicx}
+- \usepackage{setspace}
+- \usepackage{amssymb,amsmath} 
+- \usepackage{url}
+- \usepackage{epstopdf}
+- \usepackage{float}
+- \usepackage{caption}
+- \usepackage{subcaption}
+- \usepackage{fancyvrb}
+output:
+  pdf_document:
+  extra_dependencies: ["xcolor"]
+fig_caption: true
+number_sections: true
+---
+  
+In this exercise, you will know:
+\begin{itemize}
+\item How to calculate performance measures, such as classification accuracy/error rate, sensitivity and specificity
+\item How to write self-defined functions
+\item How to get ROC curves
+\item How to use cross-validation to tune $k$ for $k$NN
+\end{itemize}
+Don't forget to change your working directory!
+
+# Calculate classification accuracy
+Get the training and test sets and use \verb#knn# to obtain predictions of the test set.
+```{r}
+library(class)
+# get indexes for training data
+n=25 # the number of training data in each class
+NN=dim(iris3)[1]# the total number of observations in each class
+set.seed(983)
+index_s=sample(1:NN,n)
+index_c=sample(1:NN,n)
+index_v=sample(1:NN,n)
+# get training and test set
+train_rand = rbind(iris3[index_s,,1], iris3[index_c,,2], iris3[index_v,,3])
+test_rand = rbind(iris3[-index_s,,1], iris3[-index_c,,2], iris3[-index_v,,3])
+# get class factor for training data
+train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# get class factor for test data
+test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+# classification using knn, with k=5
+kk=5 # number of nearest neighbours
+set.seed(275)
+knn_pred=knn(train=train_rand,test=test_rand,cl=train_label, k=kk, prob=FALSE)
+```
+
+How do we calculate the classification accuracy or error rate of applying the \verb#knn# model on the test set? 
+
+**Method 1** 
+```{r}
+cl <- factor(c(rep("s",25), rep("c",25), rep("v",25))) 
+test <- rbind(iris3[26:50,,1], iris3[26:50,,2], iris3[26:50,,3])
+table(knn_pred,cl)
+(22+25+25)/75
+sum(diag(table(knn_pred,cl)))/nrow(test)
+```
+
+We usually prefer the last line than the second last line. This is because if we change the training and test sets, the table may be changed. In this case, we can still use the last line to calculate the accuracy while we have to change the numbers in the second last line to get the correct answer.
+
+**Method 2**
+```{r}
+test_label_true=factor(c(rep("s",25), rep("c",25), rep("v",25)))
+sum(knn_pred==test_label_true)/length(test_label_true)
+mean(knn_pred==test_label_true)
+```
+Make sure you understand all the codes.
+
+You can choose the one you like or think about other ways to calculate the classification accuracy. Try to calculate the error rate by yourself.
+
+Play with the above codes, to see how change of training/test data, change of variables or change of $k$ will affect the classification accuracy.
+
+**Exercise:** Calculate the classification accuracies of the predictions in the Standardise data section in the previous exercise.
+
+
+# More on model assessment
+The \verb#Caravan# data have 85 predictors that measure demographic characteristics for 5,822 individuals. The response variable is \verb#Purchase#, which indicates whether or not a given individual purchases a caravan insurance policy. {Note that in this dataset, only $6\%$ people purchase a caravan insurance policy. The two classes are very imbalanced!}
+
+This data is part of the \verb#ISLR# library. To use this dataset:
+```{r}
+library(ISLR)
+#summary(Caravan)
+```
+From \verb#summary#, we can see that some variables have different scales.
+
+To standardise the data:
+```{r}
+Caravan_scale=scale(Caravan [,-86])
+```
+Check the standard deviation and mean of the variables are all 1 and 0, respectively.
+
+Create the training and test set and apply a $k$NN model with $k=1$ to see the test result.
+```{r}
+# test sample index
+index=1:1000
+# get training and test set
+train.X=Caravan_scale[-index,]
+test.X=Caravan_scale[index,]
+train.Y=Caravan$Purchase[-index]
+test.Y=Caravan$Purchase[index]
+# kNN
+library("class")
+set.seed (198)
+knn.pred=knn(train.X,test.X,train.Y,k=1)
+# mean of error rate
+mean(test.Y!=knn.pred)
+```
+The error rate is just around 12\%, which is good. However, considering the imbalance feature of this data: we can get an error rate of 6\% if we predict all test observations as No. Thus the error rate is no longer a good measure to assess the quality of the model. In this dataset, we care more about the accuracy of predicting people would like to buy the insurance. If without any prediction, we have to visit every customer to ask if they would like to buy and the success rate is just 6\%. However, if we do our research first, then we could only visit customers who are likely to buy the insurance, which saves time and resources.
+
+```{r}
+table(knn.pred,test.Y)
+9/(68+9)
+```
+In our $k$NN model, we correctly predicted 9 customers who would buy the insurance and the accuracy is 11.7\%, which is much larger than 6\%. This shows the advantage of using $k$NN. Try different values of $k$ to see the change of accuracy.
+
+# User-defined functions
+To calculate other performance measures such as sensitivity and specificity, we can define our own function as follows.
+```{r,eval = FALSE}
+####################################################
+#### This function calculates two performance measures:
+#### specificity and sensitivity
+#### Input: pred: predicted labels (factor)
+####        truth: true labels (factor)
+####        pos: positive level
+####        neg: negative level
+#### Output: a list containing sensitivity and specificity
+####################################################
+performance.measure<-function(pred,truth,pos,neg){
+  #### get confusion table
+  confusion=table(pred,truth)
+  #### get tn, tp, fn, fp
+  tn=confusion[neg,neg]
+  tp=confusion[pos,pos]
+  fn=confusion[neg,pos]
+  fp=confusion[pos,neg]
+  #### calculate sensitivity
+  sens=tp/(tp+fn)
+  #### calculate specificity
+  spec=tn/(tn+fp)
+  #### put the two values in a list
+  measures=list(sensitivity=sens,specificity=spec)
+  #### return the list as function output
+  return(measures)
+} 
+```
+Save this script as \verb#performance-measure.r# in your working directory. 
+
+Here is how to use this user-defined function:
+```{r}
+# kNN
+library(caret)
+set.seed(47)
+knn3_pred=knn3Train(train.X, test.X, train.Y, k = 9, prob=TRUE)
+#### calculate sensitivity and specificity
+source("performance-measure.R")
+pos=levels(test.Y)[2]; neg=levels(test.Y)[1]
+measures=performance.measure(as.factor(knn3_pred),test.Y,pos,neg)
+measures
+```
+
+We can compare the above result with the results from functions in the \verb#caret# function.
+```{r}
+sensitivity(as.factor(knn3_pred),test.Y,pos)
+specificity(as.factor(knn3_pred),test.Y,neg)
+```
+
+\paragraph{Exercise} Add the calculation of classification accuracy in \verb#performance-measure.r# and return a list containing sensitivity, specificity and classification accuracy.
+
+# ROC curves
+We can use the \verb#ROCR# package to get ROC curves.
+```{r}
+library(ROCR)
+####################################################
+#### ROC curve
+att=attributes(knn3_pred)$prob
+pred.ROCR = prediction(att[,2], (test.Y))
+roc.curve = performance(pred.ROCR,"tpr","fpr")
+plot(roc.curve,lwd=2,cex.lab=1.5,cex.axis=1.5,  font.lab=2,
+     xlab="False positive rate (1-specificity)",
+     ylab="True positive rate (sensitivity)")
+#### add a line with auc=0.5
+x=seq(0,1,0.01); y=x
+lines(x,y,lwd =2, col =" red",lty=2)
+```
+
+We can also draw the ROC curves with the \verb#pROC# package. Here we show how to do this with the models built in the \verb#caret# package.
+```{r}
+#### set up train control
+fitControl <- trainControl(## 5-fold CV
+  method = "repeatedcv",
+  number = 5,
+  ## repeated five times
+  repeats = 5,
+  summaryFunction = twoClassSummary,
+  classProbs = TRUE)
+#### training process
+set.seed(5)
+knnFit=train(train.X,train.Y, method = "knn",
+              trControl = fitControl,
+              metric = "ROC",
+              preProcess = c("center","scale"),
+              tuneLength=5)
+knnFit
+```
+```{r}
+knn.pred <- predict(knnFit,test.X)
+confusionMatrix(knn.pred,test.Y)
+```
+Now we can draw an ROC curve to check the classification performance on test data.
+```{r}
+knn.probs <- predict(knnFit,test.X,type="prob")
+head(knn.probs)
+library(pROC)
+knn.ROC <- roc(predictor=knn.probs$No,
+               response=test.Y)
+knn.ROC$auc
+plot(knn.ROC,main="ROC curve")
+```
+
+# LOOCV to choose the value of $k$ using the training data
+Suppose we want to determine which $k$ is the best for classification from five values $1,3,5,7,9$. Then we need to do LOOCV five times on the training data: calculate the mean accuracy of LOOCV using each $k$ value and then choose the $k$ value with the largest accuracy. We then use this $k$ value in the $k$NN model to classify the test samples.
+
+To effectively do this, we can use the \verb#for# loop. Here is an example to calculate $1+2+\ldots+10$:
+```{r}
+Sum=0
+for(ii in 1:10){
+  Sum=Sum+ii
+}
+Sum
+```
+
+We first initialise \verb#Sum# variable as 0, to store the sum value in each loop. \verb#ii# is the index for the loops and is from 1 to 10. The values of \verb#ii# are indicated in \verb#( )# using \verb#in#. The steps of each loop is written in \verb#{ }#. \verb#ii# starts from 1, so the first loop calculates $0+1$ and give this value to \verb#Sum#. In the next loop, \verb#ii# becomes 2, and \verb#Sum# becomes $1+2$ (think about why!). \verb#ii# ends in 10, so the last loop is $45+10$. After \verb#ii# reaches 10, the loop ends and \verb#Sum# is 55.
+
+\verb#kNN.cv# in the \verb#class# package provides the leave-one-out cross-validation (LOOCV) evaluation. Type the following code to see the input options and the outputs.
+```{r}
+?knn.cv
+```
+
+Below are the codes for our task:
+```{r}
+# get indexes for training data
+n=25 # the number of training data in each class
+NN=dim(iris3)[1]# the total number of observations in each class
+set.seed(983)
+index_s=sample(1:NN,n)
+index_c=sample(1:NN,n)
+index_v=sample(1:NN,n)
+# get training and test set
+train_rand = rbind(iris3[index_s,,1], iris3[index_c,,2], iris3[index_v,,3])
+test_rand = rbind(iris3[-index_s,,1], iris3[-index_c,,2], iris3[-index_v,,3])
+# get class factor for training data
+train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# get class factor for test data
+test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+# evaluate k=1,3,5,7,9 on the training data using LOOCV
+kk=c(1,3,5,7,9)
+# initialise acc to store the mean accuracy of LOOCV for 
+# five $k$
+acc=vector("numeric",length=length(kk))
+set.seed(649)
+for(ii in 1:length(kk)){
+  knn_pred=knn.cv(train=train_rand, cl=train_label, k = kk[ii])
+  acc[ii]=mean(knn_pred==train_label)
+}
+# get the first k that has the largest accuracy
+# here we can also randomly choose any k that has the largest
+# accuracy if we have several largest values
+acc
+kk_LOOCV=kk[which.max(acc)]
+# use the k tuned by the training set to classify the test set
+set.seed(275)
+knn_pred_test=knn(train=train_rand,test=test_rand,cl=train_label, k=kk_LOOCV, prob=FALSE)
+acc_test=mean(knn_pred_test==test_label_true)
+acc_test
+```
+
+Play with the codes to make sure you understand them!
+
+
+# LOOCV to evaluate the performance of $k$NN with a specific $k$ value
+Use LOOCV to evaluate the classification performance of a $k$NN model with $k=3$ on the iris data:
+```{r} 
+# LOOCV on the whole dataset
+train=rbind(iris3[,,1], iris3[,,2], iris3[,,3])
+cl=factor(c(rep("s",50), rep("c",50), rep("v",50)))
+# evaluate kNN model with k=3
+kk=3
+set.seed(382)
+knn.pred=knn.cv(train, cl, k = kk)
+acc=mean(knn.pred==cl)
+acc
+```
+

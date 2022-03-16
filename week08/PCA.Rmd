@@ -1,0 +1,311 @@
+---
+title: '\Large \bf Exercises: Principal Component Analysis'
+
+header-includes:
+   - \usepackage{accents}
+   - \usepackage{mathtools}
+   - \usepackage{natbib} 
+   - \usepackage{graphicx}
+   - \usepackage{setspace}
+   - \usepackage{amssymb,amsmath} 
+   - \usepackage{url}
+   - \usepackage{epstopdf}
+   - \usepackage{float}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{fancyvrb}
+
+output:
+   pdf_document:
+      #extra_dependencies: ["xcolor"]
+      fig_caption: true
+      number_sections: true
+---
+In this exercise, you will know
+\begin{itemize}
+\item How to use PCA
+\item How to use PCA for mixed data
+\item How to use neural network for dimension reduction
+\end{itemize}
+
+Don't forget to change your working directory!
+
+# Principal component analysis
+We perform PCA on the \texttt{USArrests} data set, which is part of
+the base R package. The rows of the data set contain the 50 states, in
+alphabetical order.
+
+```{r}
+states = row.names(USArrests)
+states
+```
+
+The columns of the data set contain the four variables.
+
+```{r}
+names(USArrests)
+```
+
+We first briefly examine the data. We notice that the variables have vastly
+different means.
+```{r}
+apply(USArrests, 2, mean)
+```
+Note that the \texttt{apply()} function allows us to apply a function - in this case,
+the \texttt{mean()} function - to each row or column of the data set. The second
+input here denotes whether we wish to compute the mean of the rows, 1,
+or the columns, 2. We see that there are on average three times as many
+rapes as murders, and more than eight times as many assaults as rapes.
+We can also examine the variances of the four variables using the \texttt{apply()}
+function.
+```{r}
+apply(USArrests, 2, var)
+```
+Not surprisingly, the variables also have vastly different variances: the
+\texttt{UrbanPop} variable measures the percentage of the population in each state
+living in an urban area, which is not a comparable number to the number
+of rapes in each state per 100,000 individuals. If we failed to scale the
+variables before performing PCA, then most of the principal components
+that we observed would be driven by the \texttt{Assault} variable, since it has by
+far the largest mean and variance. Thus, it is important to standardize the
+variables to have mean zero and standard deviation one before performing
+PCA.
+
+We now perform principal components analysis using the \texttt{prcomp()} function, which is one of several functions in R that perform PCA.
+```{r}
+pr.out = prcomp(USArrests, scale = TRUE)
+```
+By default, the \texttt{prcomp()} function centres the variables to have mean zero.
+By using the option \texttt{scale = TRUE}, we scale the variables to have standard
+deviation one. The output from \texttt{prcomp()} contains a number of useful quantities.
+```{r}
+names(pr.out)
+```
+The center and scale components correspond to the means and standard
+deviations of the variables that were used for scaling prior to implementing
+PCA.
+```{r}
+pr.out$center
+pr.out$scale
+```
+The rotation matrix provides the principal component loadings; each column
+of \texttt{pr.out\$rotation} contains the corresponding principal component
+loading vector.
+```{r}
+pr.out$rotation
+```
+We see that there are four distinct principal components. This is to be
+expected because there are in general $\min(n - 1, p)$ informative principal
+components in a data set with $n$ observations and $p$ variables.
+
+Using the \texttt{prcomp()} function, we do not need to explicitly multiply the
+data by the principal component loading vectors in order to obtain the
+principal component score vectors. Rather the $50 \times 4$ matrix \texttt{x} has as its
+columns the principal component score vectors. That is, the $k$-th column is
+the $k$-th principal component score vector.
+```{r}
+dim(pr.out$x)
+```
+We can plot the first two principal components as follows:
+```{r}
+biplot(pr.out, scale = 0,cex=0.5)
+```
+
+The \texttt{scale=0} argument to \texttt{biplot()} ensures that the arrows are scaled to
+represent the loadings; other values for scale give slightly different biplots
+with different interpretations.  Recall that
+the principal components are only unique up to a sign change, so we can
+produce the figure by making a few small changes:
+```{r}
+pr.out$rotation = -pr.out$rotation
+pr.out$x = -pr.out$x
+biplot(pr.out, scale =0,cex=0.5)
+```
+
+The \texttt{prcomp()} function also outputs the standard deviation of each principal
+component. For instance, on the \texttt{USArrests} data set, we can access
+these standard deviations as follows:
+```{r}
+pr.out$sdev
+```
+The variance explained by each principal component is obtained by squaring
+these:
+```{r}
+pr.var = pr.out$sdev ^2
+pr.var
+```
+To compute the proportion of variance explained by each principal component,
+we simply divide the variance explained by each principal component
+by the total variance explained by all four principal components:
+```{r}
+pve = pr.var/sum(pr.var)
+pve
+```
+We see that the first principal component explains $62.0\%$ of the variance
+in the data, the next principal component explains $24.7\%$ of the variance,
+and so forth. We can plot the PVE explained by each component, as well
+as the cumulative PVE, as follows:
+```{r}
+plot(pve, xlab = " Principal Component", ylab = "Proportion of
+Variance Explained", ylim = c(0,1), type = "b")
+
+plot(cumsum(pve), xlab = "Principal Component", ylab ="
+Cumulative Proportion of Variance Explained", ylim = c(0,1),
+type = "b")
+
+```
+
+# PCA for mixed data
+As you have seen PCA handles numerical variables whereas multiple correspondence
+analysis (which we have not covered) handles categorical variables. Often data sets contain a mixture of both categorical and mixture data.
+
+PCA methods dealing with a mixture of numerical and categorical
+variables already exist and have been implemented in the \texttt{R} packages \texttt{ade4} and \texttt{FactoMineR}. The \texttt{R} package we will be looking at is \texttt{PCAmixdata}, where the function \texttt{PCAmix()} implements an algorithm presented as a single PCA with metrics,
+i.e., based on a generalized singular value decomposition of pre-processed data. This
+algorithm includes naturally standard PCA and standard MCA as special cases.
+
+Let's assume that the dataset to be analyzed comprises $n$ observations described by $p_1$ numerical variables and $p_2$ categorical variables. The dataset is represented by the $n\times p_1$ quantitative matrix $\mathbf{X}_1$ and the $n\times p_2$ qualitative matrix $\mathbf{X}_2$.  Let $m$ denote the total number of levels of the $p_2$ categorical variables.  The algorithm merges PCA and MCA thanks to the general framework.  The  two  first  steps  of the algorithm (pre-processing  and  factor  coordinates  processing) mimic this general framework with the numerical data matrix $\mathbf{X}_1$ and the qualitative data matrix $\mathbf{X}_2$ as inputs.  The third step is dedicated to squared loading processing where squared loadings are defined as squared correlations for numerical variables and correlation ratios for  categorical variables.
+
+* Step 1
+	
+	+ Build the real matrix $\mathbf Z = [\mathbf{Z}_1;\mathbf{Z}_2]$ of dimension $n \times (p_1 + m)$ where 
+	$\mathbf{Z}_1$ is the standardized version of $\mathbf{X}_1$ and $\mathbf{Z}_2$ the centered indicator matrix of the levels of $\mathbf{X}_2$.
+	+ Build the diagonal matrix $\mathbf N$ of the weights of the rows. The $n$ rows are weighted by $1/n$.
+	+ Build the diagonal matrix $\mathbf M$ of the weights of the columns. 
+	
+	The $p_1$ first columns are weighted by 1. The $m$ last columns are weighted by $n/n_{s}$, with $n_s$ being the number of observations with levels.
+	The metric
+	$M = \text{diag}(1,\ldots,1, \frac{n}{n_s}, \ldots,\frac{n}{n_m})$
+indicates that the distance between two rows of $\mathbf Z$ is a mixture of the simple euclidean distance
+used in PCA (for the first $p_1$ columns) and the weighted distance in the spirit of the $\chi^2$ distance
+used in MCA (for the last $m$ columns). It can be shown that the total variance is $p_1+m-p_2$.
+
+* Step 2
+	This step is rather technical and beyond the scope of this course. In this step a generalized  singular  value  decomposition is performed on $\mathbf Z$ and eigenvalues and eigenvectors obtained.
+
+* Step 3
+	In this step the principal component scores are computed.
+
+Let us now illustrate the procedure \texttt{PCAmix} with the data \texttt{housing} of the dataset \texttt{gironde}.
+This data set contains $n = 542$ municipalities with 3 numerical variables and 2
+categorical with a total of 4 levels.
+```{r}
+library(PCAmixdata)
+data("gironde")
+head(gironde$housing)
+```
+Edit \texttt{?gironde} for a description of the \texttt{housing} data.
+A principal component analysis is performed
+using the function \texttt{PCAmix} on the \texttt{housing} data.
+```{r}
+split = splitmix(gironde$housing)
+X1 = split$X.quanti
+X2 = split$X.quali
+res.pcamix = PCAmix(X.quanti = X1, X.quali = X2, rename.level = TRUE, graph = FALSE)
+res.pcamix$eig
+
+```
+Note that the function \texttt{splitmix} splits a mixed data matrix into two datasets: one with the
+numerical variables and one with the categorical variables.
+
+The sum of the eigenvalues is equal to $p_1+m-p_2 = 5$ and the first two dimensions
+retrieve 72\% of the total variation. Let us visualize on these two dimensions the 4 different plots.
+```{r}
+par(mfrow=c(2,2))
+plot(res.pcamix, choice = "ind", coloring.ind = X2$houses, label = FALSE,
+     posleg = "bottomright", main ="(a) Observations")
+plot(res.pcamix, choice = "levels", xlim = c(-1.5,2.5), main = "(b) Levels")
+plot(res.pcamix, choice = "cor", main = "(c) Numerical variables")
+plot(res.pcamix, choice = "sqload", coloring.var = T, leg = TRUE,
+     posleg = "topright", main = "(d) All variables")
+```
+
+Figure (a) shows the principal component map where the municipalities (the observations) are
+colored by their percentage of houses (less than 90\%, more than 90\%). The first dimension (left
+hand side) highlights municipalities with large proportions of privately-owned properties. The
+level map in Figure (b) confirms this interpretation and suggests that municipalities with a high
+proportion of houses (on the left) have a low percentage of council housing. The correlation circle in
+Figure (c) indicates that population density is negatively correlated with the percentage of home
+owners and that these two variables discriminate the municipalities on the first dimension.
+Figure (d) plots the variables (categorical or numerical) using squared loadings as coordinates.
+For numerical variables, squared loadings are squared correlations and for categorical variables
+squared loadings are correlation ratios. In both cases, they measure the link between the variables
+and the principal components. One observes that the two numerical variables \texttt{density} and \texttt{owners}
+and the two categorical variables \texttt{houses} and \texttt{council} are linked to the first component. On the
+contrary, the variable \texttt{primaryres} is clearly orthogonal to these variables and associated to the
+second component. %Note that these links show neither a positive nor a negative association, and
+%the maps Figure (b) and (c) are necessary for more precise interpretation.
+
+In summary, municipalities on the right of the principal component map have a relatively high
+proportion of council housing and a small percentage of privately-owned houses, with most accommodation
+being rented. On the other hand, municipalities on the left hand side are mostly
+composed of home owners living in their primary residence. The percentage of primary residences
+also has a structuring role in the characterization of municipalities in this region of France by defining
+clearly the second dimension. Indeed the municipalities at the bottom of the map (those with
+small values on the second dimension) are sea resorts with many secondary residences. For instance
+the 10 municipalities with the smallest coordinates in the second dimension are well-known resorts
+on France's Atlantic coast:
+```{r}
+sort(res.pcamix$ind$coord[,2])[1:10]
+```
+
+# Neural networks for dimension reduction
+
+In this section, we will use the gene expression data in \verb#ISLR# package.
+
+```{r}
+library(ISLR)
+library(keras)
+library(tensorflow)
+######get gene data
+nci.labs=NCI60$labs 
+nci.data=NCI60$data
+```
+
+We first find the principal components of the data based on PCA and get the PC plots. We label each instance with their known class labels, i.e. the samples from the same class have the same color.
+
+```{r}
+####################################
+######PCA
+pr.out=prcomp(nci.data, scale=TRUE)
+######PC plots
+Cols=function(vec){
+  cols=rainbow(length(unique(vec)))
+  return(cols[as.numeric(as.factor(vec))])
+}
+plot(pr.out$x[,1:2], col=Cols(nci.labs), pch=19,
+       xlab="Z1",ylab="Z2")
+```
+
+We then use a neural network with one hidden layer and linear activations functions for dimension reduction. The point is to set the input and output layers with the same size.
+
+```{r}
+############################################################
+######Neural network with one hidden layer
+model = keras_model_sequential() 
+model %>% 
+  layer_dense(units = 2, activation = 'linear', input_shape = ncol(nci.data),name = "subspace") %>%
+  layer_dense(units = ncol(nci.data), activation = 'linear')
+summary(model)
+model %>% compile(
+  loss = 'mean_squared_error',
+  optimizer = "adam"
+)
+history = model %>% fit(
+  as.matrix(nci.data), as.matrix(nci.data), 
+  epochs = 80
+)
+```
+
+We can then get the middle hidden layer out and project the training instances to the subspace spanned by the two hidden layers.
+
+```{r}
+############################################################
+######Neural network with one hidden layer
+subspace = keras_model(inputs = model$input, outputs = get_layer(model, "subspace")$output)
+projection1 = predict(subspace, nci.data)
+plot(projection1, col=Cols(nci.labs), pch=19,
+     xlab="W1",ylab="W2")
+```
+
+We obtain the two graphs for PCA and neural network. It seems that the two subspaces are quite similar. Here we only set \verb#epochs = 80#, but you can set it to a larger number to further reduce the reconstruction error and see the outputs.

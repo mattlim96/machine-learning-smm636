@@ -1,0 +1,129 @@
+---
+title: "More real data examples"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Fatty Acid Composition Data
+
+Let's try to use LDA on the fatty acid composition data, which aims to classify seven commercial oils. First, we load the data from the package.
+```{r load oil data}
+library(caret)
+#load oil data from caret package
+data(oil)
+```
+Then, we divide the data to training and test sets.
+```{r oil data train/test}
+# create training and test sets
+set.seed(32)
+trainIndex = createDataPartition(oilType, p = 0.7, list = FALSE, times = 1)
+train.feature=fattyAcids[trainIndex,] # training features
+train.label=oilType[trainIndex] # training labels
+test.feature=fattyAcids[-trainIndex,] # test features
+test.label=oilType[-trainIndex] # test labels
+```
+
+The parameter in LDA is the number of linear discriminants. For binary classification, we cannot tune this parameter, because we can only have one (`2-1`) linear discriminants. However, for multi-class classification, we need to tune this parameter, because the maximum number of linear discriminants is `C-1` where `C` is the number of classes. Here we can tune it via 10-fold CV.
+```{r oil data lda}
+#### set up train control
+fitControl <- trainControl(## 10-fold CV
+  method = "repeatedcv",
+  number = 10,
+  ## repeated five times
+  repeats = 5)
+#### training process
+set.seed(5)
+ldaFit1=train(train.feature,train.label, method = "lda2",
+              trControl = fitControl,
+              metric = "Accuracy",
+              tuneLength=10)
+ldaFit1
+plot(ldaFit1)
+```
+
+Based on the trained model, we can predict the labels of the test instances.
+```{r oil data lda test}
+#### test process
+pred=predict(ldaFit1,test.feature)
+acc=mean(pred==test.label)
+acc
+table(pred,test.label)
+```
+
+## German Credit Data
+
+Now we try to classify the German credit data by LDA. Since we just need to distinguish between two classes, good or bad, there is no parameter to be tuned for this task.
+```{r german credit data lda}
+library(caret)
+#load german credit data from caret package
+data(GermanCredit)
+# classify two classes: good or bad
+## Show the first 10 columns
+str(GermanCredit[, 1:10])
+## Delete two variables where all values are the same for both classes
+GermanCredit[,c("Purpose.Vacation","Personal.Female.Single")] <- list(NULL)
+# create training and test sets
+set.seed(12)
+trainIndex = createDataPartition(GermanCredit$Class, p = 0.7, list = FALSE, times = 1)
+train.feature=GermanCredit[trainIndex,-10] # training features
+train.label=GermanCredit$Class[trainIndex] # training labels
+test.feature=GermanCredit[-trainIndex,-10] # test features
+test.label=GermanCredit$Class[-trainIndex] # test labels
+#### training process
+ldaFit=train(train.feature,train.label, method = "lda",
+             trControl = trainControl(method = "none"))
+ldaFit$finalModel
+```
+
+Now we can predict the labels of test instances:
+```{r german credit data lda test}
+#### test process
+pred=predict(ldaFit,test.feature)
+acc=mean(pred==test.label)
+acc
+table(pred,test.label)
+```
+
+We can see that there is a warning for variable colinearity given by the `lda` function. This means that there are variables with correlations of 1 or -1. Now let's have a look at variable colinearity. We can do this by plot the pairwise correlations. Given that there are 59 variables, a plot of all variables will be too crowded. We can creat a plot that contain a subset of the variables.
+```{r german credit data correlation}
+#### check variable colinearity
+library(corrplot)
+corrplot(round(cor(train.feature[,40:50]),2), type = "upper")
+```
+
+## Pima Indians Diabetes Data
+
+We now try to classify the diabetes data by LDA. Similarly to the German credit data, we only have two classes here, so there is no parameter to be tuned in LDA.
+```{r diabetes data lda}
+library(mlbench)
+library(caret)
+#load Pima Indians Diabetes data from mlbench package
+data(PimaIndiansDiabetes)
+dim(PimaIndiansDiabetes)
+levels(PimaIndiansDiabetes$diabetes)
+table(PimaIndiansDiabetes$diabetes)
+# create training and test sets
+set.seed(76)
+trainIndex = createDataPartition(PimaIndiansDiabetes$diabetes, p = 0.7, list = FALSE, times = 1)
+train.feature=PimaIndiansDiabetes[trainIndex,-9] # training features
+train.label=PimaIndiansDiabetes$diabetes[trainIndex] # training labels
+test.feature=PimaIndiansDiabetes[-trainIndex,-9] # test features
+test.label=PimaIndiansDiabetes$diabetes[-trainIndex] # test labels
+#### training process
+ldaFit=train(train.feature,train.label, method = "lda",trControl = trainControl(method = "none"))
+ldaFit$finalModel
+```
+
+The labels of the test instances can be predicted via the trained LDA model.
+```{r diabetes data lda test}
+#### test process
+pred=predict(ldaFit,test.feature)
+acc=mean(pred==test.label)
+acc
+table(pred,test.label)
+```

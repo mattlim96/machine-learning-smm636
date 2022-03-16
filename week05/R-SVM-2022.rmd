@@ -1,0 +1,147 @@
+---
+title: 'Exercises: Support vector machine'
+header-includes:
+   - \usepackage{accents}
+   - \usepackage{mathtools}
+   - \usepackage{natbib} 
+   - \usepackage{graphicx}
+   - \usepackage{setspace}
+   - \usepackage{amssymb,amsmath} 
+   - \usepackage{url}
+   - \usepackage{epstopdf}
+   - \usepackage{float}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{fancyvrb}
+output:
+   pdf_document:
+      #extra_dependencies: ["xcolor"]
+      fig_caption: true
+      number_sections: true
+---
+In this exercise, you will know
+\begin{itemize}
+\item How to use SVM in \textsf{R}
+\item How to tune parameters
+\item How to SVM in \textsf{caret}
+\end{itemize}
+
+Don't forget to change your working directory!
+
+# SVM
+The \verb#svm()# function in \textsf{R} is usually used to perform SVM.
+```{r}
+#install.packages("e1071")
+library(e1071)
+?svm
+```
+
+The following example is from the document of the \verb#e1071# package.
+```{r}
+data(iris)
+attach(iris)
+## classification mode
+model = svm(iris[,-5], iris[,5])
+```
+
+Note that, to use \verb#svm()# for classification, we need to make sure that the response vector is a factor vector.
+```{r}
+summary(model)
+model$gamma
+```
+
+The summary shows that if we don't specify the options in \verb#svm()#, the default setting is radial kernel with $C=1$ and $\gamma=0.25$. If you'd like to change this setting, use \verb#kernel# to specify the kernel, use \verb#degree# to specify $d$ for polynomial kernel, use \verb#gamma# to specify $\gamma$ for radial kernel, use \verb#cost# to specify $C$. For more details, read the help document.
+```{r}
+# test with train data
+pred = predict(model, iris[,-5])
+# Check accuracy:
+table(pred, iris[,5])
+# compute decision values:
+x = iris[, -5] #Check
+pred = predict(model, x, decision.values = TRUE)
+attr(pred, "decision.values")[1:4,]
+pred[1:4]
+# visualize (classes by color, SV by crosses):
+plot(cmdscale(dist(iris[,-5])),
+     col = as.integer(iris[,5]),
+     pch = c("o","+")[1:150 %in% model$index + 1])
+```
+
+We can obtain the decision value by adding \verb#decision.values = TRUE#. 
+We can also visualise the training data where support vectors are labelled with crosses.
+
+If you want to get the predicted probabilities, you have to enable the \verb#probability = TRUE# option when train the model.
+```{r}
+model = svm(iris[,-5], iris[,5], probability = TRUE)
+pred = predict(model, iris[,-5], decision.values = TRUE, probability = TRUE)
+attr(pred, "decision.values")[1:4,]
+attr(pred, "probabilities")[1:4,]
+```
+
+
+# Tune the parameters by cross-validatiaon
+The package also provides you functions to tune the parameters. The following codes set the range of parameters $C$ and $\gamma$ in a list and tune the parameters based on 10-fold cross-validation. The plot shows you the changes of error rate with different $C$ and $\gamma$. We can also use the best model (with smallest error rate) to predict instances.
+```{r}
+set.seed(392)
+tune.out = tune(svm, iris[,-5], iris[,5],
+            ranges = list(gamma = 2^(-1:1), cost = 2^(2:4)),
+            tunecontrol = tune.control(sampling = "cross"),cross=10)
+summary(tune.out)
+plot(tune.out)
+# use the best model to predict the training instances
+tune.out$best.model
+pred=predict(tune.out$best.model,iris[,-5])
+table(pred, iris[,5])
+```
+
+# Use ``svm`` in ``caret``
+```{r}
+library(caret)
+#load german credit data from caret package
+data(GermanCredit)
+# classify two status: good or bad
+## Show the first 10 columns
+str(GermanCredit[, 1:10])
+## Delete two variables where all values are the same for both classes
+GermanCredit[,c("Purpose.Vacation","Personal.Female.Single")] <- list(NULL)
+#Get training and test sets
+set.seed(12)
+trainIndex = createDataPartition(GermanCredit$Class, p = 0.7, list = FALSE, times = 1)
+train=GermanCredit[trainIndex,] # training set
+test=GermanCredit[-trainIndex,-10] # test set
+```
+
+Suppose we would like to use the RBF kernel.
+```{r}
+fitControl=trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 3)
+set.seed(2333)
+svm.Radial=train(Class ~., data = train, method = "svmRadial",
+                 trControl=fitControl,
+                 preProcess = c("center", "scale"),
+                 tuneLength = 5)
+svm.Radial
+plot(svm.Radial)
+```
+
+If we would like to tune both parameters, $C$ and sigma.
+
+```{r}
+grid_radial=expand.grid(sigma = c(0.01, 0.1, 1,10),
+                             C = c(0.01, 0.1, 1, 10))
+fitControl=trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 3)
+set.seed(2333)
+svm.Radialg=train(Class ~., data = train, method = "svmRadial",
+                           trControl=fitControl,
+                           preProcess = c("center", "scale"),
+                           tuneGrid = grid_radial)
+svm.Radialg
+plot(svm.Radialg)
+```
+
+

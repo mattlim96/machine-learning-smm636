@@ -1,0 +1,150 @@
+---
+title: 'Exercise: the \texttt{caret} package'
+header-includes:
+   - \usepackage{accents}
+   - \usepackage{mathtools}
+   - \usepackage{natbib} 
+   - \usepackage{graphicx}
+   - \usepackage{setspace}
+   - \usepackage{amssymb,amsmath} 
+   - \usepackage{url}
+   - \usepackage{epstopdf}
+   - \usepackage{float}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{fancyvrb}
+output:
+   pdf_document:
+      extra_dependencies: ["xcolor"]
+      fig_caption: true
+      number_sections: true
+---
+In this \textsf{R} exercise, you will know:
+\begin{itemize}
+\item How to use the \verb#caret# package
+\end{itemize}
+Don't forget to change your working directory!
+    
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("class", repos = "http://cran.us.r-project.org")
+#library(class)
+install.packages("caret", repos = "http://cran.us.r-project.org")
+library(caret)
+install.packages("AppliedPredictiveModeling", repos = "http://cran.us.r-project.org")
+library(AppliedPredictiveModeling)
+install.packages("e1071", repos = "http://cran.us.r-project.org")
+library(e1071)
+```
+
+
+# The caret package
+The \verb#caret# package provides easy ways to use/train a wide range of machine learning models, tune parameters, calculate model performance measures and draw nice plots. You can read the following nice page of \verb#caret# for more information: \url{https://topepo.github.io/caret/index.html}. The manual of this package: \url{https://cran.r-project.org/web/packages/caret/caret.pdf}. Try to explore different functions of \verb#caret# by yourselves.
+\begin{Verbatim}[frame=single, baselinestretch=1.05]
+install.packages("caret")
+library(caret)
+\end{Verbatim}
+
+# Nice plots by caret
+This example is from \url{https://topepo.github.io/caret/index.html}. The \verb#featurePlot# function in \verb#caret# can be used to get nice pairs plot, to visualise the relationship between variables.
+\begin{Verbatim}[frame=single, baselinestretch=1.05]
+install.packages("AppliedPredictiveModeling")
+library(AppliedPredictiveModeling)
+\end{Verbatim}
+```{r}
+transparentTheme(trans = .4)
+featurePlot(x = iris[, 1:4], 
+            y = iris$Species, 
+            plot = "pairs",
+            ## Add a key at the top
+            auto.key = list(columns = 3))
+```
+
+
+# Use $k$NN in caret
+Get training/test sets by the \verb#createDataPartition# function.
+```{r}
+set.seed(215)
+train.indx=createDataPartition(iris$Species,p=0.5,list=FALSE,times = 1)
+train=iris[train.indx,-5]; train.label=iris[train.indx,5]
+test=iris[-train.indx,-5]; test.label=iris[-train.indx,5]
+```
+
+Set up things to control the training process.
+```{r}
+#### set up train control
+fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv", 
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 5)
+```
+
+Train the $k$NN model by tuning $k$ with repeated 10-fold cross-validation: 
+```{r}
+#install.packages("e1071")
+#library(e1071)
+#### training process
+set.seed(596)
+knnFit1=train(train,train.label, 
+              method="knn", 
+              trControl=fitControl, 
+              metric="Accuracy", 
+              tuneLength=10)
+```
+
+Use help or read the manual to understand the control commands.
+
+Type \verb#knnFit1# to see the output: 
+```{r}
+knnFit1
+```
+
+We can also have a plot to show the parameter tuning process in the training data:
+```{r}
+plot(knnFit1)
+```
+
+It seems that the default setting of $k$ starts from 5. We can also create a grid containing our own selected parameters.
+```{r}
+#### specify a tuning grid###################
+kNNGrid=expand.grid(k=c(1,3,5,7,9,11))
+#### training process
+set.seed(596)
+knnFit2=train(train,train.label, method = "knn", trControl = fitControl,
+              metric = "Accuracy", tuneGrid=kNNGrid)
+knnFit2
+plot(knnFit2)
+```
+
+We can also do preprocessing on the data.
+```{r}
+set.seed(596)
+knnFit3=train(train,train.label, method = "knn", trControl = fitControl,
+              metric = "Accuracy", preProcess = c("center","scale"),
+              tuneGrid=kNNGrid)
+knnFit3
+plot(knnFit3)
+```
+
+We can use the usual way to do prediction for the test set:
+```{r}
+#### test process
+pred1=predict(knnFit1,test)
+acc1=mean(pred1==test.label)
+acc1
+pred2=predict(knnFit2,test)
+acc2=mean(pred2==test.label)
+acc2
+pred3=predict(knnFit3,test)
+acc3=mean(pred3==test.label)
+acc3
+```
+
+\textit{There are a lot of things to explore in this package. We'll talk about some during lectures, but it'll be better if you could discover new things by yourselves!}
+
+
+
+
+
+

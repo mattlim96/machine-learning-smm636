@@ -1,0 +1,456 @@
+---
+title: 'Exercise: Logistic regression, $k$ nearest neighbours'
+header-includes:
+   - \usepackage{accents}
+   - \usepackage{mathtools}
+   - \usepackage{natbib} 
+   - \usepackage{graphicx}
+   - \usepackage{setspace}
+   - \usepackage{amssymb,amsmath} 
+   - \usepackage{url}
+   - \usepackage{epstopdf}
+   - \usepackage{float}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{fancyvrb}
+output:
+   pdf_document:
+      fig_caption: true
+      number_sections: true
+---
+In this \textsf{R} exercise, you will know:
+\begin{itemize}
+\item How to get training and test sets
+\item How to perform logistic regression in \textsf{R}
+\item How to perform $k$NN in \textsf{R}
+\item How to scale data
+\end{itemize}
+Don't forget to change your working directory!
+
+\tableofcontents 
+
+# R Packages and datasets required
+## Use Package \underline{\textbf{class}}\ or anything else
+* Type the following code to install and activate the package: 
+    + install.packages("class")
+    + library(class)
+    + install.packages("caret")
+    + library(caret)
+    + install.packages("ISLR")
+    + library(ISLR)
+    
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+#load("workspace.RData")
+#install.packages("class", repos = "http://cran.us.r-project.org")
+library(class)
+#install.packages("caret", repos = "http://cran.us.r-project.org")
+library(caret)
+```
+
+## Dataset 
+* Edgar Anderson's Iris Data
+```{r, echo=T, results='hide'} 
+#This data frame is already contained in the R
+#Therefore, no need to read from other source
+#Use "?iris" to check the detail about this dataset 
+```
+
+* Stock Market Data
+
+The Smarket data is part of the ISLR library. This data set consists of
+percentage returns for the S\&P 500 stock index over $1,250$ days, from the
+beginning of 2001 until the end of 2005. For each date, we have recorded
+the percentage returns for each of the five previous trading days, Lag1
+through Lag5. We have also recorded Volume (the number of shares traded
+on the previous day, in billions), Today (the percentage return on the date
+in question) and Direction (whether the market was Up or Down on this
+date).
+
+# Logistic regression
+In this section, we will use the Smarket data. To have a look at some basic properties of the dataset:
+```{r}
+library(ISLR)
+names(Smarket)
+dim(Smarket)
+summary(Smarket)
+```
+The cor() function produces a matrix that contains all of the pairwise
+correlations among the predictors in a data set. The first command below
+gives an error message because the Direction variable is qualitative.
+```{r}
+#cor(Smarket)
+cor(Smarket[, -9])
+```
+
+As one would expect, the correlations between the lag variables and today's
+returns are close to zero. In other words, there appears to be little
+correlation between today's returns and previous days' returns. The only
+substantial correlation is between Year and Volume. By plotting the data we
+see that Volume is increasing over time. In other words, the average number
+of shares traded daily increased from 2001 to 2005.
+```{r}
+attach(Smarket)
+plot(Volume)
+```
+
+Next, we will fit a logistic regression model in order to predict Direction
+using Lag1 through Lag5 and Volume. The glm() function fits generalized
+linear models, a class of models that includes logistic regression. The syntax
+of the glm() function is similar to that of lm(), except that we must pass in linear model
+the argument family = binomial in order to tell R to run a logistic regression
+rather than some other type of generalized linear model.
+
+```{r}
+glm.fits <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume,
+                data = Smarket, family = binomial)
+
+summary(glm.fits)
+```
+
+The smallest p-value here is associated with Lag1. The negative coefficient
+for this predictor suggests that if the market had a positive return yesterday,
+then it is less likely to go up today. However, at a value of 0.15, the p-value
+is still relatively large, and so there is no clear evidence of a real association
+between Lag1 and Direction.
+
+We use the coef() function in order to access just the coefficients for this
+fitted model. We can also use the summary() function to access particular
+aspects of the fitted model, such as the p-values for the coefficients.
+```{r}
+coef(glm.fits)
+
+summary(glm.fits)$coef
+
+summary(glm.fits)$coef[,4]
+
+```
+
+The predict() function can be used to predict the probability that the
+market will go up, given values of the predictors. The type = "response"
+option tells R to output probabilities of the form $P(Y = 1|X)$, as opposed
+to other information such as the logit. If no data set is supplied to the
+predict() function, then the probabilities are computed for the training
+data that was used to fit the logistic regression model. Here we print
+only the first ten probabilities. We know that these values correspond to
+the probability of the market going up, rather than down, because the
+contrasts() function indicates that R has created a dummy variable with
+a 1 for Up.
+```{r}
+glm.probs <- predict(glm.fits, type = "response")
+glm.probs[1:10]
+contrasts(Direction)
+```
+
+In order to make a prediction as to whether the market will go up or
+down on a particular day, we must convert these predicted probabilities
+into class labels, Up or Down. The following two commands create a vector
+of class predictions based on whether the predicted probability of a market
+increase is greater than or less than 0.5.
+```{r}
+glm.pred <- ifelse(glm.probs > .5, "Up", "Down")
+```
+
+The function ifelse creates a vector of 1,250 elements with Down if predicted probability of a
+market increase exceeds 0.5, and Up if it is smaller than 0.5. 
+
+In order to better assess the accuracy
+of the logistic regression model in this setting, we can fit the model
+using part of the data, and then examine how well it predicts the held out
+data. This will yield a more realistic classification result, in the sense that in practice
+we will be interested in our model's performance not on the data that
+we used to fit the model, but rather on days in the future for which the
+market's movements are unknown.
+
+To implement this strategy, we will first create a vector corresponding
+to the observations from 2001 through 2004. We will then use this vector
+to create a held out data set of observations from 2005.
+```{r}
+train = (Year < 2005)
+Smarket.2005 <- Smarket[!train, ]
+dim(Smarket.2005)
+
+Direction.2005 = Direction[!train]
+```
+
+The object train is a vector of $1,250$ elements, corresponding to the observations
+in our data set. The elements of the vector that correspond to
+observations that occurred before 2005 are set to TRUE, whereas those that
+correspond to observations in 2005 are set to FALSE. The object train is
+a Boolean vector, since its elements are TRUE and FALSE. Boolean vectors
+can be used to obtain a subset of the rows or columns of a matrix. For
+stock market data set, corresponding only to the dates before 2005, since
+those are the ones for which the elements of train are TRUE. The ! symbol
+can be used to reverse all of the elements of a Boolean vector. That is,
+!train is a vector similar to train, except that the elements that are TRUE
+in train get swapped to FALSE in !train, and the elements that are FALSE
+in train get swapped to TRUE in !train. Therefore, Smarket[!train, ] yields
+a submatrix of the stock market data containing only the observations for
+which train is FALSE — that is, the observations with dates in 2005. The
+output above indicates that there are 252 such observations.
+
+We now fit a logistic regression model using only the subset of the observations
+that correspond to dates before 2005, using the subset argument.
+instance, the command Smarket[train, ] would pick out a submatrix of the
+We then obtain predicted probabilities of the stock market going up for
+each of the days in our test set—that is, for the days in 2005.
+```{r}
+glm.fits <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume,
+                data = Smarket, family = binomial, subset = train)
+glm.probs <- predict(glm.fits, Smarket.2005, type = "response")
+```
+Notice that we have trained and tested our model on two completely separate
+data sets: training was performed using only the dates before 2005,
+and testing was performed using only the dates in 2005. Finally, we compute
+the predictions for 2005 and compare them to the actual movements
+of the market over that time period.
+```{r}
+glm.pred <- ifelse(glm.probs > .5, "Up", "Down")
+```
+
+
+
+
+
+# $k$NN
+We can perform $k$NN using the \verb#knn()# function in the \verb#class# package. Install the package and use it in a new workspace. After installing the package this time, you just need to run \verb#library(class)# next time to use the functions in the package. There is no need to install it again. Now we can use the \verb#knn()# function. Use \verb#?knn# to see the help information of the \verb#knn()# function. Read the help information carefully to understand what are the input options and outputs.
+```{r}
+?knn
+```
+
+Here is the example from the help of \verb#knn()#:
+```{r}
+# get training and test set
+train <- rbind(iris3[1:25,,1], iris3[1:25,,2], iris3[1:25,,3])
+test <- rbind(iris3[26:50,,1], iris3[26:50,,2], iris3[26:50,,3])
+# get class factor
+cl <- factor(c(rep("s",25), rep("c",25), rep("v",25)))
+# classification using knn, with k=3
+set.seed(47)
+knn_pred=knn(train, test, cl, k = 3, prob=TRUE)
+# see the attributes of the knn model
+attributes(knn_pred)
+```
+
+\textbf{Exercise:} Use \verb#?iris3# to see the structure of \verb#iris3# and think about why we can get the training and test sets using the corresponding commands. 
+
+We have to use \verb#set.seed# before \verb#knn()# to make the results reproducible, because if several observations are tied as nearest neighbours, then \verb#knn()# will randomly break the tie. Change seed to see if there's change in the prediction.
+
+Make sure you understand the outputs from \verb#knn()#. What happens if we change \verb#prob=FALSE#? Play with the \verb#knn()# function by changing the inputs, e.g. \verb#k=1# etc.
+
+Note that if you run the following code after the above one, the original \verb#knn_pred# (with \verb#k=3# and \verb#prob=TRUE#) will be covered by the new \verb#knn_pred# (with \verb#k=5# and \verb#prob=FALSE#). 
+```{r}
+knn_pred=knn(train, test, cl, k = 3, prob=FALSE)
+knn_pred
+```
+```{r}
+attributes(knn_pred)
+```
+
+To get two \verb#knn# predictions from two models, you can simply change the name of the prediction:
+```{r}
+knn_pred2=knn(train, test, cl, k = 5, prob=FALSE)
+```
+
+Play with the above codes, to see how change of training/test data, change of variables or change of $k$ will affect the prediction.
+
+\textbf{Exercise:} Randomly sample 25 observations from each class of the iris data to form the training set and the rest as the test set. Obtain the predictions of the test set of \verb#knn# with \verb#k=5# on this training/test split. Make sure your result is reproducible.
+
+\verb#knn1()# in the \verb#class# package provides an easy way to do $1$NN:
+```{r}
+set.seed(47)
+knn1_pred=knn1(train, test, cl)
+```
+
+If we set \verb#prob=TRUE#, \verb#knn()# returns the probabilities associated with the predicted class, i.e. only the largest probabilities are returned. If we want to see all probabilities, we can use the \verb#knn3Train()# function in the \verb#caret# package.
+```{r}
+#If 'caret' package is already installed in the beginning, otherwise
+#install.packages("caret")
+#library(caret)
+set.seed(47)
+knn3_pred=knn3Train(train, test, cl, k = 3, prob=TRUE)
+attributes(knn3_pred)
+```
+
+
+```{r, echo=FALSE, include=FALSE} 
+# library(class)
+# ########################################################
+# ############### Example in help#########################
+# ########################################################
+# set.seed(000)
+# # get training and test set
+# train = rbind(iris3[1:25,,1], iris3[1:25,,2], iris3[1:25,,3])
+# test = rbind(iris3[26:50,,1], iris3[26:50,,2], iris3[26:50,,3])
+# 
+# # train = rbind(iris3[sample(iris3[,,1],25)],iris3[sample(iris3[,,2],25)],iris3[sample(iris3[,,3],25)])
+# # test = rbind(iris3[sample(iris3[,,1],25)],iris3[sample(iris3[,,2],25)],iris3[sample(iris3[,,3],25)])
+# # get class factor
+# cl = factor(c(rep("s",25), rep("c",25), rep("v",25)))
+# # classification using knn, with k=3
+# set.seed(47)
+# knn_pred=knn(train, test, cl, k = 3, prob=TRUE)
+# # see the attributes of the knn model
+# att=attributes(knn_pred)
+# # get the probabilities associated with the final prediction
+# prob_pred=att$prob
+# ######### 1NN ###############
+# set.seed(47)
+# knn1_pred=knn1(train, test, cl)
+# ######### see all probabilities###############
+# library(caret)
+# set.seed(47)
+# knn3_pred=knn3Train(train, test, cl, k = 3, prob=TRUE)
+# attributes(knn3_pred)
+# ########################################################
+# ############### Randomly sample from data###############
+# ########################################################
+# # get indexes for training data
+# n=25 # the number of training data in each class
+# NN=dim(iris3)[1]# the total number of observations in each class
+# set.seed(983)
+# index_s=sample(1:NN,n)
+# index_c=sample(1:NN,n)
+# index_v=sample(1:NN,n)
+# # get training and test set
+# train_rand = rbind(iris3[index_s,,1], iris3[index_c,,2], iris3[index_v,,3])
+# test_rand = rbind(iris3[-index_s,,1], iris3[-index_c,,2], iris3[-index_v,,3])
+# # get class factor for training data
+# train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# # get class factor for test data
+# test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+# # classification using knn, with k=5
+# kk=5 # number of nearest neighbours
+# set.seed(275)
+# knn_pred=knn(train=train_rand,test=test_rand,cl=train_label, k=kk, prob=FALSE)
+```
+
+
+# Standardise data
+When the scales of the variables are different, we have to scale the data before applying $k$NN. This is to make sure that the Euclidean distance is not dominated by the variables with large scales. To scale the dataset, we can use the \verb#scale# function. Type \verb#?scale# to see the help of this function.
+```{r}
+?scale
+```
+
+Now suppose we change the measurement of \verb#Sepal.Width# to milimeters and those of other variables to meters.
+```{r}
+# Suppose we change Sepal.width to mm while others to m
+iris_c=iris[,1:4]
+iris_c[,2]=iris[,2]*10
+iris_c[,-2]=iris[,c(1,3,4)]/10
+```
+
+Use \verb#summary# to see the different scales of variables
+```{r}
+summary(iris_c)
+```
+
+Now we apply 5NN:
+```{r}
+# get indexes for training data
+n=25 # the number of training data in each class
+NN=dim(iris)[1]/3# the total number of observations in each class
+set.seed(983)
+index_s=sample(which(iris$Species=="setosa"),n)
+index_c=sample(which(iris$Species=="versicolor"),n)
+index_v=sample(which(iris$Species=="virginica"),n)
+# get training and test set
+train_rand_c = rbind(iris_c[index_s,], iris_c[index_c,], iris_c[index_v,])
+test_rand_c = rbind(iris_c[-c(index_s,index_c,index_v),])
+# get class factor for training data
+train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# get class factor for test data
+test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+# classification using knn, with k=5
+kk=5 # number of nearest neighbours
+set.seed(275)
+knn_pred=knn(train=train_rand_c,test=test_rand_c,cl=train_label, k=kk, prob=FALSE)
+knn_pred
+```
+
+\textbf{Exercise:} Have a look at the predictions and compare them with the ground truth, what do you find?
+
+Now we standardise the data first using \verb#scale( )#:
+```{r}
+iris_s=scale(iris_c)
+summary(iris_s)
+apply(iris_s, 2, mean)
+apply(iris_s, 2, sd)
+```
+
+Check the standard deviation and mean of the variables are all 1 and 0, respectively.
+
+Then if we apply 5NN using the same training and test indexes:
+```{r}
+# get training and test set
+train_rand_s = rbind(iris_s[index_s,], iris_s[index_c,], iris_s[index_v,])
+test_rand_s = rbind(iris_s[-c(index_s,index_c,index_v),])
+# get class factor for training data
+train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# get class factor for test data
+test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+# classification using knn, with k=5
+kk=5 # number of nearest neighbours
+set.seed(275)
+knn_pred=knn(train=train_rand_s,test=test_rand_s,cl=train_label, k=kk, prob=TRUE)
+knn_pred
+
+knn_pred_s == test_label_true
+```
+
+\textbf{Exercise:} Compare the predictions with those without scaling. What do you find?
+
+
+```{r}
+#, echo=FALSE, include=FALSE} 
+########################################################
+############### Scale the data###############
+########################################################
+library(class)
+# get indexes for training data
+n=25 # the number of training data in each class
+NN=dim(iris)[1]/3# the total number of observations in each class
+set.seed(983)
+index_s=sample(which(iris$Species=="setosa"),n)
+index_c=sample(which(iris$Species=="versicolor"),n)
+index_v=sample(which(iris$Species=="virginica"),n)
+# Suppose we change Sepal.width to mm while others to m
+iris_c=iris[,1:4]
+iris_c[,2]=iris[,2]*10
+iris_c[,-2]=iris[,-2]/10
+# get training and test set
+train_rand_c = rbind(iris_c[index_s,], iris_c[index_c,], iris_c[index_v,])
+test_rand_c = rbind(iris_c[-c(index_s,index_c,index_v),])
+# get class factor for training data
+train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# get class factor for test data
+test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+# classification using knn, with k=5
+kk=5 # number of nearest neighbours
+set.seed(275)
+knn_pred=knn(train=train_rand_c,test=test_rand_c,cl=train_label, k=kk, prob=FALSE)
+knn_pred
+########################################################
+#### Now we scale the data first########################
+########################################################
+iris_s=scale(iris_c)
+# get training and test set
+train_rand_s = rbind(iris_s[index_s,], iris_s[index_c,], iris_s[index_v,])
+test_rand_s = rbind(iris_s[-c(index_s,index_c,index_v),])
+# get class factor for training data
+train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# get class factor for test data
+test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+# classification using knn, with k=5
+kk=5 # number of nearest neighbours
+set.seed(275)
+knn_pred_s=knn(train=train_rand_s,test=test_rand_s,cl=train_label, k=kk, prob=FALSE)
+knn_pred_s
+```
+
+
+
+
+
+
+

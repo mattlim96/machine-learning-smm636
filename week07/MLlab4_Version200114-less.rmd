@@ -1,0 +1,230 @@
+---
+title: '\Large{\bf \textsf{R} exercises 5: LDA, QDA}'
+author: "DR. Rui Zhu, Dr. Feng Zhou"
+header-includes:
+   - \usepackage{accents}
+   - \usepackage{mathtools}
+   - \usepackage{natbib} 
+   - \usepackage{graphicx}
+   - \usepackage{setspace}
+   - \usepackage{amssymb,amsmath} 
+   - \usepackage{url}
+   - \usepackage{epstopdf}
+   - \usepackage{float}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{fancyvrb}
+date: "`r Sys.Date()`"
+output:
+   pdf_document:
+      extra_dependencies: ["xcolor"]
+      fig_caption: true
+      number_sections: true
+---
+In \textsf{R} exercise 5, you will know
+\begin{itemize}
+\item How to apply LDA using the \verb#lda()# function
+\item How to use LDA in the \verb#caret# package
+\item How to tune the number of dimensions of the \verb#lda2()# function in the \verb#caret# package
+\item Create an interactive app that can show different projections of a dataset
+\item How to use LDA as a dimension reduction
+\item How to apply QDA
+\item More real data examples
+\end{itemize}
+
+Don't forget to change your working directory!
+    
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("class", repos = "http://cran.us.r-project.org")
+library(class)
+#install.packages("caret", repos = "http://cran.us.r-project.org")
+library(caret)
+#install.packages("MASS", repos = "http://cran.us.r-project.org")
+library(MASS)
+#install.packages("AppliedPredictiveModeling", repos = "http://cran.us.r-project.org")
+library(AppliedPredictiveModeling)
+#install.packages("e1071", repos = "http://cran.us.r-project.org")
+library(e1071)
+```
+
+
+# The lda function
+The \verb#lda()# function is in the library \verb#MASS#. To use \verb#lda()#, 
+\begin{Verbatim}[frame=single, baselinestretch=1.05]
+install.packages(MASS)
+library(MASS)
+\end{Verbatim}
+
+Prepare training and test set:
+```{r}
+n=25 # the number of training data in each class
+NN=dim(iris)[1]/3# the total number of observations in each class
+set.seed(983)
+index_s=sample(which(iris$Species=="setosa"),n)
+index_c=sample(which(iris$Species=="versicolor"),n)
+index_v=sample(which(iris$Species=="virginica"),n)
+# get training and test set
+train_rand = rbind(iris[index_s,], iris[index_c,], iris[index_v,])
+test_rand = rbind(iris[-c(index_s,index_c,index_v),])
+# get class factor for training data
+train_label= factor(c(rep("s",n), rep("c",n), rep("v",n)))
+# get class factor for test data
+test_label_true=factor(c(rep("s",NN-n), rep("c",NN-n), rep("v",NN-n)))
+```
+
+Use \verb#?lda# to see the help information of \verb#lda()#.
+```{r}
+?lda
+```
+
+To fit the lda model:
+```{r}
+fit1=lda(Species~.,data=train_rand)
+fit2=lda(train_rand[,-5],train_rand[,5])
+```
+
+The two fits have the same results: you can use either way. 
+```{r}
+fit1
+```
+
+The prior probabilities are estimated as the class proportions for the training set. Group means are the group means in the original feature spaces. Coefficients of linear discriminants are the two directions we find using LDA. Proportions of traces are related to the singular values obtained for the two directions when solving LDA.
+
+Now we can predict the labels for the test set:
+```{r}
+pred=predict(fit1,test_rand[,-5])
+pred
+```
+
+\verb#pred# has three parts: \verb#class#, \verb#posterior# and \verb#x#.  \verb#class# is the predicted labels. \verb#posterior# gives you posterior probabilities of belonging to one class for each instance. \verb#x# is the projected features of the test set.
+
+To calculate the classification accurary:
+```{r}
+acc = mean(test_rand[,5]==pred$class)
+acc
+```
+
+**Exercise:** Draw a scatter plot of the projected training data using LDA.
+
+
+\newpage
+# LDA in the caret package
+We can also use the \verb#lda# function from the \verb#caret# package.
+```{r}
+library(caret)
+ldaFit=train(train_rand[,-5],train_rand[,5],method="lda",
+                 trControl=trainControl(method = "none"))
+ldaFit$finalModel
+pred2=predict(ldaFit,test_rand[,-5])
+acc2=mean(pred2==test_rand[,5])
+acc2
+```
+
+Check the final model to see if it's the same as the previous section.
+
+The \verb#lda# function uses all $C-1$ directions for classification, so there's no parameter to be tuned in the training phase. However, we don't have to use all $C-1$ directions. The \verb#lda2# function in the \verb#caret# package allows us to tune this parameter, i.e. the number of directions to use for classification.
+```{r}
+fitControl <- trainControl(## 10-fold CV
+  method = "repeatedcv",
+  number = 10,
+  ## repeated ten times
+  repeats = 5)
+set.seed(836)
+lda2Fit=train(train_rand[,-5],train_rand[,5],method="lda2",
+                    trControl=fitControl)
+plot(lda2Fit)
+pred3=predict(lda2Fit,test_rand[,-5])
+acc3=mean(pred3==test_rand[,5])
+acc3
+```
+
+The increase in classification accuracy shows that using only one direction rather than two directions can result in better classification performance for this training/test split.
+
+**Exercise:** Repeat the random split procedure 50 times. For each training/test split, tune the number of directions based on 10-fold cross-validation. Get a boxplot of the classification accuracies. Store the tuned number of directions for each split in a vector.
+
+# Create an interactive app that can show different projections of a dataset
+
+```{r,eval=FALSE}
+library(shiny)
+library(shinythemes)
+ui <- fluidPage(theme = shinytheme("lumen"),
+                titlePanel("Projection of iris data"),
+                sidebarLayout(
+                  sidebarPanel(
+                    # Select type of projection to plot
+                    selectInput(inputId = "type", label = strong("Projection type"),
+                                choices = c("PCA","LDA"),
+                                selected = "PCA")
+                    ),
+                  # Output: Description, lineplot, and reference
+                  mainPanel(
+                    plotOutput(outputId = "projection")
+                  )
+                )
+)
+
+# Define server logic required to draw a projection plot ----
+server <- function(input, output) {
+  output$projection <- renderPlot({
+    data(iris)
+    if(input$type=="LDA"){
+      library(MASS)
+      fit=lda(Species~.,data=iris)
+      iris_proj=as.matrix(iris[,-5])%*%(fit$scaling)
+    }else{
+      pr.out = prcomp(iris[,-5], scale = TRUE)
+      iris_proj=pr.out$x[,1:2]
+    }
+    cols<- c("steelblue1", "hotpink", "mediumpurple")  
+    pchs<-c(1,2,3)
+    ########## projection plot
+    plot(iris_proj[1:50,1],iris_proj[1:50,2],pch=1,
+         xlim=c(-12,10),xlab=" ",ylab=" ",
+         cex.lab=1.5, cex=1.5,
+         cex.axis=1.5,  font.lab=2,col="steelblue1")
+    if(input$type=="LDA"){
+         title(xlab="LD1",ylab="LD2")
+    }else{
+      title(xlab="PC1",ylab="PC2")
+    }
+    points(iris_proj[51:100,1],iris_proj[51:100,2],pch=2,col="hotpink")
+    points(iris_proj[101:150,1],iris_proj[101:150,2],pch=3,col="mediumpurple")
+    legend("bottomright",legend=c("setosa","versicolor","virginica"),
+           col=cols,pch=pchs,cex=1,text.font=2)
+  })
+}
+shinyApp(ui = ui, server = server)
+```
+
+
+# Apply QDA by the qda function and caret package
+Lastly, we are going to have a look at how to use QDA in R. Similarly to LDA, we can either use the \verb#qda# function in the MASS library or use the caret pacakge directly. 
+
+## Use the qda function
+The usage of the \verb#qda# function is very similar to that of the \verb#lda# function: we just need to change the function name to \verb#qda#:
+```{r}
+# fit the QDA model
+fit1q=qda(Species~.,data=train_rand)
+fit1q
+# predict the labels for the test set
+predq=predict(fit1q,test_rand[,-5])
+# calculate the classification accuracy
+accq = mean(test_rand[,5]==predq$class)
+accq
+```
+
+## Use the caret package
+```{r}
+# fit the QDA model
+qdaFit=train(train_rand[,-5],train_rand[,5],method="qda",
+                    trControl=trainControl(method = "none"))
+qdaFit$finalModel
+# predict the labels for the test set
+predq2=predict(qdaFit,test_rand[,-5])
+# calculate the classification accuracy
+accq2=mean(predq2==test_rand[,5])
+accq2
+```
+
+It is clear that the classification accuracy of QDA is less than that of LDA for this specific training/test split, which suggests that the classes can be well separated by a linear classification boundary rather than a quadratic one.

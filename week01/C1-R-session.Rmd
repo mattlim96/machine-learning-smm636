@@ -1,9 +1,9 @@
 ---
 title: 'R exercise 1: Introduction'
 output:
-  word_document: default
-  html_document: default
   pdf_document: default
+  html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -51,7 +51,7 @@ We can save the plot by clicking `Export`.
 Alternatively, we can do the following:
 ```{r iris data pairs plot export 1,eval=F, echo=T}
 # Open a new plot device
-dev.new(width=5, height=4, unit="in") 
+dev.new(width=5, height=4, unit="in")
 # use pairs() to create the pairs plot, with different colours and symbols 
 # for different classes
 pairs(iris[,1:4], pch = pchs[iris$Species],  cex = 1,
@@ -126,9 +126,9 @@ sum(default_no_50_1[,3]==default_no_50_2[,3])
 default_no_50 = default_no_50_2
 # get the first 50 default=Yes
 default_yes_50 = Default[Default$default=="Yes",][1:50,]
-# combine default_no_50 and default_yes_50 
+# combine default_no_50 and default_yes_50
 # to get the subset
-default_50 = rbind(default_no_50,default_yes_50) 
+default_50 = rbind(default_no_50,default_yes_50)
 ?rbind
 ```
 

@@ -1,0 +1,244 @@
+---
+title: 'Exercises: Tree-based classification methods'
+header-includes:
+   - \usepackage{accents}
+   - \usepackage{mathtools}
+   - \usepackage{natbib} 
+   - \usepackage{graphicx}
+   - \usepackage{setspace}
+   - \usepackage{amssymb,amsmath} 
+   - \usepackage{url}
+   - \usepackage{epstopdf}
+   - \usepackage{float}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{fancyvrb}
+output:
+   pdf_document:
+      #extra_dependencies: ["xcolor"]
+      fig_caption: true
+      number_sections: true
+---
+In this exercise, you will know
+\begin{itemize}
+\item How to use tree-based classification methods
+\end{itemize}
+
+Don't forget to change your working directory!
+
+# Heart data to predict whether a patient has heart disease
+Load the \verb#Heart.csv# data. These data contain a binary outcome HD for 303 patients who presented with chest pain. An outcome value of \verb#Yes# indicates the presence of heart disease based on an angiographic test, while No means no heart disease. There are 13 predictors including Age, Sex, Chol (a cholesterol measurement), and other heart and lung function measurements.
+```{r}
+#install.packages("caret")
+library(caret)
+heart=read.csv("Heart.csv",header = TRUE)
+#check missing values
+sum(is.na(heart))
+#remove missing values
+heart=heart[complete.cases(heart),]
+#create training/test split
+set.seed(345)
+train.index=createDataPartition(heart[,ncol(heart)],p=0.7,list=FALSE)
+train=heart[train.index,]
+test=heart[-train.index,]
+```
+
+# Decision trees
+## Grow a tree
+The \verb#tree()# function is in the package \verb#tree#. The package provides nice functions to display the graphs, use cross-validation to prune the tree.
+```{r}
+#install.packages("tree")
+library(tree)
+#################################################################
+#########Train a decision tree####################################
+heart.tree=tree(AHD ~ . , train)
+#have a look at the summary of the tree
+summary(heart.tree)
+```
+In the summary, the residual mean deviance is calculated as $-\frac{2}{n-|T_0|}\sum_m \sum_k n_{mk} \log \hat{p}_{mk}$, where $n_{mk}$ is the number of observations in the $m$th terminal node that belong to the $k$th class. A small deviance indicates a tree that provides a good fit to the (training) data.
+
+To have a look at the details of how the tree is splitted, just type the name of the tree.
+```{r}
+#have a look at how the tree is splitted
+heart.tree
+```
+
+One important advantage of classification trees is that we can visualise the tree and see how the final decisions are made.
+```{r}
+#plot the tree
+plot(heart.tree)
+text(heart.tree,pretty=0,cex=0.7)
+##try different parameters for pretty
+##pretty=1
+plot(heart.tree)
+text(heart.tree,pretty=1,cex=0.7)
+##try different parameters for pretty
+##pretty=NULL
+plot(heart.tree)
+text(heart.tree,pretty=NULL,cex=0.7)
+```
+
+To predict the classes of the test set, we need to specify ``type`` as ``class``.
+```{r}
+#################################################################
+#########Test error######################################################
+pred=predict(heart.tree,test[,-ncol(test)],type="class")
+table(pred,test[,ncol(test)])
+mean(pred==test[,ncol(test)])
+```
+
+
+## Prune the tree
+To prune the tree, we first use \verb#cv.tree# to get the best size of the tree. Here we set ``FUN=prune.misclass`` to indicate that we want the classification error rate to guide the cross-validation and pruning process, rather than the default for the ``cv.tree()`` function, which is deviance. Note that in this case, ``dev`` denotes the CV classification error rate and ``k`` is $\alpha$.
+```{r}
+set.seed(203)
+heart.cv=cv.tree(heart.tree,FUN=prune.misclass)
+heart.cv
+#plot the cross-validation results
+par(mfrow=c(1,2))
+plot(heart.cv$size,heart.cv$dev,type="b",
+     xlab="number of leaves of the tree",ylab="CV error rate%",
+     cex.lab=1.5,cex.axis=1.5)
+plot(heart.cv$k,heart.cv$dev,type="b",
+     xlab=expression(alpha),ylab="CV error rate%",
+     cex.lab=1.5,cex.axis=1.5)
+```
+
+From the outputs and the plots, we can prune the tree to the subtree with size 7.
+```{r}
+#######prune the tree
+heart.prune=prune.misclass(heart.tree,best=7)
+plot(heart.prune)
+text(heart.prune,pretty=1,cex=0.8)
+```
+
+Finally, we can obtain the prediction from the pruned tree.
+```{r}
+#######predict the test instances
+pred.prune=predict(heart.prune,test[,-ncol(test)],type="class")
+table(pred.prune,test[,ncol(test)])
+mean(pred.prune==test[,ncol(test)])
+```
+
+## Use ``caret`` library to build decision trees
+In ``caret`` library, we can use ``rpart`` library to build a decision tree. Here we repeate 10-fold CV 3 times to tune the parameter ``cp``, i.e. complexity parameter, specified in the ``rpart`` library.
+```{r}
+fitcontrol=trainControl(method = "repeatedcv",
+                     number = 10,
+                     repeats = 3)
+set.seed(1)
+heart.rpart=train(train[,-ncol(heart)],
+               train[,ncol(heart)],
+               method = "rpart",
+               tuneLength=5,
+               trControl = fitcontrol)
+heart.rpart
+```
+
+We can have a look at the details of this tree by the following command. 
+```{r results='hide'}
+#####To look at the details of this tree
+print(heart.rpart$finalModel)
+```
+
+We can obtain the tree plot as before. 
+```{r}
+plot(heart.rpart$finalModel)
+text(heart.rpart$finalModel, cex=.8)
+```
+
+We can use ``rattle`` library to produce fancy trees. If you don't have this package, install it first and then library it.
+```{r}
+library(rattle)
+fancyRpartPlot(heart.rpart$finalModel)
+```
+
+
+Instead of using the default parameters of ``cp``, we can specify our own values by the following.
+```{r}
+fitcontrol=trainControl(method = "repeatedcv",
+                     number = 10,
+                     repeats = 3)
+
+set.seed(1)
+cpGrid=expand.grid(cp=c(0.01,0.02,0.03))
+heart.rparts=train(train[,-ncol(heart)],
+               train[,ncol(heart)],
+               method = "rpart",
+               tuneGrid=cpGrid,
+               trControl = fitcontrol)
+heart.rparts
+```
+# Bagging and random forest
+The \verb#randomForest()# function is in the package \verb#randomForest# can perform random forest. 
+Remember that bagging is equivalent to random forest when we use all features in each split. Thus, in order to use bagging, we set \verb#mtry=13#.
+```{r}
+#install.packages("randomForest")
+library(randomForest)
+set.seed(103)
+heart.bag=randomForest(AHD~.,data=train,mtry=13,importance=TRUE,ntree=500)
+heart.bag
+pred.bag=predict(heart.bag,newdata=test[,-ncol(test)])
+mean(pred.bag==test[,ncol(test)])
+```
+
+To use random forest, we need to set \verb#mtry# to a smaller number.
+```{r}
+set.seed(921)
+heart.rf=randomForest(AHD~.,data=train,mtry=6,importance=TRUE,ntree=500)
+heart.rf
+pred.rf=predict(heart.rf,newdata=test[,-ncol(test)])
+mean(pred.rf==test[,ncol(test)])
+```
+
+Change \verb#mtry# to see its effect on the classification accuracy.
+
+To view the importance of variables
+```{r}
+importance(heart.rf)
+varImpPlot(heart.rf)
+```
+
+## Use ``caret`` library for random forest
+
+```{r}
+fitControl=trainControl(
+  method = "repeatedcv",
+  number = 5,
+  repeats = 3)
+set.seed(2)
+rfFit=train(AHD~.,data=train,method="rf",metric="Accuracy", 
+              trControl=fitControl,tuneLength=5)
+# Have a look at the model
+rfFit
+plot(rfFit)
+rfFit$finalModel
+```
+
+Have a look at variable importance
+```{r}
+varImp(rfFit)
+plot(varImp(rfFit))
+```
+
+# Boosting
+The \verb#gbm()# function is in the package \verb#gbm# can perform boosting. Before using this function, we have to transform the label variable to 0-1.
+```{r}
+#install.packages("gbm")
+library(gbm)
+set.seed(18)
+train[,ncol(train)]=ifelse(train$AHD=="No",0,1)
+test[,ncol(test)]=ifelse(test$AHD=="No",0,1)
+```
+
+Use \verb#distribution="bernoulli"# for classification.
+```{r}
+heart.boost=gbm(AHD~.,data=train,distribution="bernoulli",n.trees=5000,
+                interaction.depth=2,shrinkage=0.01)
+summary(heart.boost)
+pred.boost=predict(heart.boost,newdata=test[,-ncol(test)],n.trees=5000,type="response")
+pred.boost=ifelse(pred.boost<0.5,0,1)
+mean(pred.boost==test[,ncol(test)])
+```
+
+Change \verb#interaction.depth# and \verb#shrinkage# to see their effect.
