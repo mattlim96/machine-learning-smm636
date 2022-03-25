@@ -1,0 +1,277 @@
+---
+title: '\Large \bf Exercises: Factor analysis and multidimensional scaling'
+
+header-includes:
+   - \usepackage{accents}
+   - \usepackage{mathtools}
+   - \usepackage{natbib} 
+   - \usepackage{graphicx}
+   - \usepackage{setspace}
+   - \usepackage{amssymb,amsmath} 
+   - \usepackage{url}
+   - \usepackage{epstopdf}
+   - \usepackage{float}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{fancyvrb}
+
+output:
+   pdf_document:
+      #extra_dependencies: ["xcolor"]
+      fig_caption: true
+      number_sections: true
+---
+In this exercise, you will know
+\begin{itemize}
+\item How to use FA
+\item How to use classical and ordinal MDS
+\end{itemize}
+
+Don't forget to change your working directory!
+
+# Factor analysis
+
+We illustrate how to conduct exploratory data analysis using the data from the classic 1939 study by Karl J. Holzinger and Frances Swineford. In the study, a number of tests intended to measure a general factor and other specific factors, were administered to seventh and eighth grade students in two schools; we will only consider the Grant-White School ($n=145$). The data used in this example (available from the \texttt{lavaan} package) include nine tests intended to measure several domains such us verbal ability, speed, and memory. 
+
+```{r}
+library(lavaan)
+dat = HolzingerSwineford1939[HolzingerSwineford1939$school=="Grant-White",]
+dat = dat[, -c(1:6)]
+names(dat) = c("visual", "cubes", "lozenge", "paragraph", "sentence", "wordm", 
+                "add", "counting", "straight")
+dat[1:3, ]
+```
+The variables above are scores deriving from tests on visual perception, cubes, lozenges, paragraph comprehension, sentence completion, word meaning, speeded addition, speeded counting of dots, speeded discrimination between straight and curved capitals.
+
+The classical exploratory factor analysis involves (1) preparing data, (2) determining the number of factors, (3) estimation of the model, (4) factor rotation, (5) factor score estimation and (6) interpretation of the analysis.
+
+## Preparing Data
+
+A correlation matrix is required. The following \texttt{R} code calculates the correlation matrix.
+```{r}
+fa.cor = cor(dat)
+```
+
+## Determining the Number of Factors
+
+With the correlation matrix, we first decide the number of factors. There are several ways to do it. But all the methods are based on the eigenvalues of the correlation matrix. From \texttt{R}, we have the eigenvalues below. First, note the number of eigenvalues is the same as the number of variables. Second, the sum of all the eigenvalues is equal to the number of variables.
+```{r}
+fa.eigen = eigen(fa.cor)
+fa.eigen$values
+sum(fa.eigen$values)
+```
+The basic idea can be related to the variance explained as in regression analysis. With the correlation matrix, we can take the variance of each variable as 1. For a total of $p$ variables, the total variance is therefore $p$. For factor analysis, we try to find a small number of factors that can explain a large portion of the total variance. The eigenvalues correspond to the variance of each factor. If the eigenvalue corresponding to a factor is large, that means the variance explained by the factor is large. Therefore, the eigenvalues can be used to select the number of factors.
+
+\textit{Rule 1}
+
+The first rule to decide the number of factors is to use the number of eigenvalues larger than 1. In this example, we have three eigenvalues larger than 1. Therefore, we can have three factors.
+
+```{r}
+fa.eigen$values
+```
+
+
+\textit{Rule 2}
+
+Another way is to select the number of factors with the cumulative eigenvalues accounting for 80\% of the total variance. This is to say if we add the eigenvalues of the selected number of factor, the total values should be larger than 80\% of the sum of all eigenvalues. We could choose four.
+```{r}
+cumsum(fa.eigen$values)/9
+```
+
+\textit{Cattell's Scree Plot}
+
+The Cattell's Scree plot is a plot of eigenvalues on the Y axis along with the number of factors on the X axis. The plot looks like the side of a mountain, and "scree" refers to the debris fallen from a mountain and lying at its base. As one moves to the right, toward later components/factors, the eigenvalues drop. When the drop ceases and the curve makes an elbow toward less steep decline, Cattell's scree test says to drop all further components/factors after the one starting the elbow. For this example, we can identify four factors based on the scree plot below.
+
+```{r}
+plot(fa.eigen$values, type = "b", ylab = "Eigenvalues", xlab = "Factor")
+```
+
+## Estimation of Model/Factor Analysis
+
+Once the number of factors is decided, we can conduct exploratory factor analysis using the \texttt{R} function \texttt{factanal()}. The \texttt{R} input and output for this example is given below.
+```{r}
+fa.res = factanal(x = dat, factors = 4, rotation = "none")
+fa.res
+```
+
+In this type of analysis it is assumed that the observed data consist of two parts, the common factor part and the uniqueness part. The common factor part is based on the four factors, which are also called the common factors. The uniqueness part is also called uniqueness factor, which is specific to each observed variable.
+
+Using the variable \texttt{visual} as an example, we have 
+$$
+visual = 0.499*Factor1 + 0.113*Factor2 + 0.465*Factor3 + e_{visual}. 
+$$
+Note that the factor loadings are from the Loadings section of the output. The loadings are the coefficients of the latent factors on the manifest indicators or observed variables. The variance of the uniqueness is in the Uniquenesses section. For $e_{visual}$, the variance is $0.521$. For the other variables, we apply the same reasoning.
+
+The other section is related to the variance explained by the factors. The SS loadings row provides the sum squared loadings related to each factor. It is the overall variance explained in all the 9 variables by each factor. Therefore, the first factor explains the total of 2.631 variance, that's about $29.2\%=2.631/9$. Proportion Var includes the variances in the observed variables/indicators explained by each factor. Cumulative Var gives the cumulative proportion of variance explained by all factors.
+
+A test is conducted to test whether the factor model is sufficient to explain the observed data. The null hypothesis that a 4-factor model is sufficient. For this model, the chi-square statistic is 2.59 with degrees of freedom 6. The p-value for the chi-square test is 0.858 which is larger than .05. Therefore, we do not reject the null hypothesis.% that the factor model have a good fit to the data.
+
+## Factor Rotation
+
+Although we have identified four factors and found that the 4-factor model is a good model, we cannot find a clear pattern in the factor loadings to have a deep understanding of the factors. Through factor rotation, we can make the output more understandable; this is usually necessary to facilitate the interpretation of factors. The aim here is to find a simple solution that each factor has a small number of large loadings and a large number of zero (or small) loadings. There are many different rotation methods such as the varimax rotation, quadtimax rotation, equimax rotation, oblique rotation, etc. The PROMAX rotation is one kind of oblique rotation and is widely used. After PROMAX rotation, the factor will be correlated.
+
+```{r}
+fa.res = factanal(x = dat, factors = 4, rotation = "promax")
+print(fa.res, cut = 0.2)
+```
+
+
+In the output, we use \texttt{print(fa.res, cut = 0.2)} to show factor loadings that are greater than 0.2. Note that after rotation, many loading are actually smaller than 0.2. The pattern of the factor loadings are clearer now. For example, the variable \texttt{visual} has two large loadings (0.470 and 0.327) corresponding to Factors 3 and 4 but small than 0.2 loadings on the other two. In this case, we might say that \texttt{visual} is mainly influenced by Factors 3 and 4. A similar reasoning can be applied to the other variables, for instance \texttt{paragraph} only has one large loading for Factor 1 and all the others are smaller than 0.2.
+
+We can also see that the primary indicators for Factor 1 are \texttt{paragraph}, \texttt{sentence} and \texttt{wordm}. %And for Factor 4, the indictors include add, code, counting, and straight.
+
+The correlations among the factors are given in the section of Factor Correlation. For example, the correlation between Factor 1 and Factor 2 is 0.17. Note that after rotation, the test of the model is the same as without rotation. 
+
+## Interpretation of the Results
+
+Based on the rotated factor loadings, we can name the factors in the model. This can be done by identifying significant loadings. For example, Factor 1 is characterised by \texttt{paragrap}, \texttt{sentence} and \texttt{wordm}, all of which are related to verbal perspective of cognitive ability. One way to name the factor is to call it a verbal factor. Similarly, the second and third can be called speed factor, and the last one can be called the spatial factor. 
+
+\textit{Rule 1} suggested the presence of three factors, please repeat the analysis using 3 factors.
+
+## Factor Scores
+
+Sometimes, the purpose of factor analysis is to estimate the score of each latent construct/factor for each participant. Factor scores can be used in further data analysis. In general, there are two methods for estimating factor scores: the regression method and the Bartlett method. The second method generally works better. For example, the following code obtains the Bartlett factor scores. %As an example, the linear regression is also fitted.
+
+```{r}
+fa.res = factanal(x = dat, factors = 4, rotation = "promax", scores = "Bartlett")
+head(fa.res$scores)
+
+summary(lm(Factor2 ~ Factor1, data = as.data.frame(fa.res$scores)))
+```
+
+# Multidimensional scaling
+
+## Classical MDS
+We illustrate an example of classical multimensional scaling using a dataset (\texttt{cerealnut.dta}) which consists of eight variables with nutrition data on 25
+breakfast cereals. Data are available on Moodle. 
+\footnotesize
+```{r}
+#install.packages("haven")
+library(haven)
+cerealnut = read_dta("cerealnut.dta")
+apply(cerealnut[,-1], 2, var)
+```
+
+Function \texttt{apply()} shows that \texttt{K}, \texttt{Na}, and
+\texttt{calories} - having much larger variances - will largely determine the Euclidean distances.
+Let's simply calculate the Euclidean distances with the default \texttt{dist()} command
+```{r}
+cereal.dist = dist(cerealnut[,-1])
+```
+A procedure to find an MDS solution for a distance matrix from metric data is
+\texttt{cmdscale()}:
+```{r}
+cereal.mds = cmdscale(cereal.dist)
+cereal.mds
+```
+\texttt{cmdscale()} has performed classical metric scaling and extracted two dimensions, which is the default action.
+The result of \texttt{cmdscale()} is a list of two dimensions indicating coordinates for entities (in this case, cereals brands). Given those coordinates,
+we can simply \texttt{plot()} the values and label them:
+```{r}
+rownames(cereal.mds) = cerealnut$brand
+plot(cereal.mds, type = "n", xlab = "Dimension 1", ylab = "Dimension 2", 
+     xlim = c(-200, 250), ylim = c(-200, 250))
+text(cereal.mds, rownames(cereal.mds), cex=0.5)
+```
+Classical MDS has placed the cereals so that all the brands fall within a triangle defined by Product 19,
+All-Bran, and Puffed Rice. 
+
+But, as we saw from the variable summary, three of the eight variables are controlling the distances.
+If we want to provide for a more equal footing for the eight variables, we compute MDS on standardized variables.
+```{r}
+cerealnut.sc =scale(cerealnut[,-1])
+```
+We now compute classical MDS on the standardised variables:
+```{r}
+cereal.sc.dist = dist(cerealnut.sc)
+cereal.sc.mds = cmdscale(cereal.sc.dist)
+rownames(cereal.sc.mds) = cerealnut$brand
+plot(cereal.sc.mds, type = "n", xlab = "Dimension 1", ylab = "Dimension 2")
+text(cereal.sc.mds, rownames(cereal.sc.mds), cex=0.5)
+```
+This configuration plot, based on the standardized variables, better incorporates all the nutrition
+data. If you are familiar with these cereal brands, spotting groups of similar cereals appearing near
+each other is easy. The bottom-left corner has several of the most sweetened cereals. The brands
+containing the word "Bran" all appear to the right of center. Rice Krispies and Puffed Rice are the
+farthest to the left.
+
+
+## Ordinal MDS
+
+We investigate the use of non-metrical MDS using a simulated data set that is typical of consumer
+brand perception surveys. This data reflects consumer ratings of brands
+with regard to perceptual adjectives as expressed on survey items with the following
+form:
+
+On a scale from 1 to 10 — where 1 is least and 10 is most — how [ADJECTIVE]
+is [BRAND A]?
+
+In this data, an observation is one respondent's rating of a brand on one of the
+adjectives. Two such items might be:
+
+\begin{enumerate}
+	\item How trendy is Intelligentsia Coffee?
+	\item How much of a category leader is Blue Bottle Coffee?
+\end{enumerate}
+
+Such ratings are collected for all the combinations of adjectives and brands of
+interest.
+
+The data here comprise simulated ratings of 10 brands ("a" to "j") on 9 adjectives
+("performance", "leader", "latest", "fun", and so forth), for $N = 100$ simulated respondents.
+We start by loading and checking data:
+
+```{r}
+brand.ratings = read.csv("http://goo.gl/IQl8nc")
+head(brand.ratings)
+tail(brand.ratings)
+```
+Each of the 100 simulated respondents has observations on each of the 10 brands,
+so there are 1,000 total rows.
+
+Perhaps the simplest business question in these data is: "What is the average
+(mean) position of the brand on each adjective?" We can use \texttt{aggregate()}
+to find the mean of each variable by brand:
+```{r}
+brand.mean = aggregate(. ~ brand, data=brand.ratings, mean)
+brand.mean
+```
+Before proceeding, we perform a bit of housekeeping on the new \texttt{brand.mean}
+object. We name the rows with the brand labels that \texttt{aggregate()} put into the
+\texttt{brand} column, and then we remove that column as redundant:
+```{r}
+rownames(brand.mean) = brand.mean[, 1] # use brand for the row names
+brand.mean = brand.mean[, -1] # remove brand name column
+```
+The resulting matrix is now nicely formatted with brands by row and adjective
+means in the columns:
+```{r}
+brand.mean
+```
+
+Let's convert the mean ratings to rankings instead of
+raw values; this will be non-metric, ordinal data. We apply \texttt{rank()} to the columns
+using \texttt{lapply()} and code each resulting column as an ordinal factor variable using
+\texttt{ordered()}:
+```{r}
+brand.rank = data.frame(lapply(brand.mean, function(x) ordered(rank(x))))
+brand.rank
+```
+To find distances between the ranks, we use an alternative to \texttt{dist()}, \texttt{daisy()}
+from the \texttt{cluster} package, which can handle non-metric data
+such as rank ordering. In \texttt{daisy()}, we compute distance with the \texttt{gower} metric,
+which handles mixed numeric, ordinal, and nominal data:
+```{r}
+library(cluster)
+brand.dist.r = daisy(brand.rank, metric="gower")
+```
+Now that we have a distance matrix we apply the non-metric MDS function
+\texttt{isoMDS()} from package \texttt{MASS} to the data. Then we plot the result:
+```{r}
+library(MASS)
+brand.mds.r = isoMDS(brand.dist.r)
+
+plot(brand.mds.r$points, type="n")
+text(brand.mds.r$points, rownames(brand.mean), cex=1)
+```
+
